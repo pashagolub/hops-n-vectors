@@ -1,0 +1,1 @@
+-- Placeholder. pg_timetable job registration will be implemented in Phase 2/5.
