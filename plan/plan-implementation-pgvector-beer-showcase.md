@@ -71,11 +71,11 @@ hops-n-vectors/
 
 Goal: repo skeleton, bundled dataset, environment contract.
 
-| Task | Description | Files | Spec refs | Depends on |
-|---|---|---|---|---|
-| **1.1** | Create repo scaffold: directory tree above, `LICENSE`, `.gitignore` (Python, model caches), `.env` with `POSTGRES_USER/PASSWORD/DB=beer`, `EMBEDDING_MODEL`, `EMBED_BATCH_SIZE=64`, `REBUILD_SCHEDULE=*/15 * * * *`, `TOP_N_DEFAULT=5` | repo root, `.env` | §4.6, SEC-001 | — |
-| **1.2** | Obtain the Kaggle "Beer Profile and Ratings Data Set" (ruthgn) CSV and commit it to `data/` as plain CSV (verify it is NOT a Git-LFS pointer). Record source URL, license, snapshot date in a `data/README.md` | `data/beer_profile_and_ratings.csv`, `data/README.md` | CON-002, CON-003, DAT-001 | — |
-| **1.3** | Create ~20-row test fixture CSV sampled from the dataset, covering edge cases: duplicate natural key, empty description, non-ASCII name | `app/tests/fixtures/mini_beers.csv` | §6 Test Data | 1.2 |
+| Task | Status | Description | Files | Spec refs | Depends on |
+|---|---|---|---|---|---|
+| **1.1** | DONE | Create repo scaffold: directory tree above, `LICENSE`, `.gitignore` (Python, model caches), `.env` with `POSTGRES_USER/PASSWORD/DB=beer`, `EMBEDDING_MODEL`, `EMBED_BATCH_SIZE=64`, `REBUILD_SCHEDULE=*/15 * * * *`, `TOP_N_DEFAULT=5` | repo root, `.env` | §4.6, SEC-001 | — |
+| **1.2** | DONE | Obtain the Kaggle "Beer Profile and Ratings Data Set" (ruthgn) CSV and commit it to `data/` as plain CSV (verify it is NOT a Git-LFS pointer). Record source URL, license, snapshot date in a `data/README.md` | `data/beer_profile_and_ratings.csv`, `data/README.md` | CON-002, CON-003, DAT-001 | — |
+| **1.3** | DONE | Create ~20-row test fixture CSV sampled from the dataset, covering edge cases: duplicate natural key, empty description, non-ASCII name | `app/tests/fixtures/mini_beers.csv` | §6 Test Data | 1.2 |
 
 **Phase gate:** `data/*.csv` parses with Python `csv` module and has expected columns; fixture ≤ 25 rows.
 
@@ -85,11 +85,11 @@ Goal: repo skeleton, bundled dataset, environment contract.
 
 Goal: `postgres` service boots with full schema; compose file validates.
 
-| Task | Description | Files | Spec refs | Depends on |
-|---|---|---|---|---|
-| **2.1** | Write `db/init/01_schema.sql`: `CREATE EXTENSION vector`, `beers` table exactly per §4.2 (identity PK, natural-key UNIQUE, `info`, `text_hash`, `embedding vector(384)`, `embedded_at`, `updated_at`), `dataset_meta` table, UTF-8 assumptions documented in comments. Do NOT create the HNSW index here (embedder owns it) | `db/init/01_schema.sql` | §4.2, REQ-002, REQ-013 | — |
-| **2.2** | Write `docker-compose.yml` skeleton: `postgres` service on `pgvector/pgvector:pg18`, port mapped to `127.0.0.1:5432`, healthcheck (`pg_isready`), named volumes `pgdata` + `model-cache`, init dir mount, env from `.env` | `docker-compose.yml` | REQ-001, REQ-002, SEC-001, §4.1 | 1.1, 2.1 |
-| **2.3** | Add `scheduler` service (`cybertecpostgresql/pg_timetable:latest`) depending on `postgres` healthy; write idempotent `db/init/02_timetable_job.sql` registering the `rebuild_embeddings` chain with schedule from `${REBUILD_SCHEDULE}` (see Phase 5 for job SQL body — register a placeholder no-op first if needed, finalized in 5.2) | `docker-compose.yml`, `db/init/02_timetable_job.sql` | REQ-010, §4.4, PLT-002 | 2.2 |
+| Task | Status | Description | Files | Spec refs | Depends on |
+|---|---|---|---|---|---|
+| **2.1** | DONE | Write `init/01_schema.sql`: `CREATE EXTENSION vector`, `beers` table exactly per §4.2 (identity PK, natural-key UNIQUE, `info`, `text_hash`, `embedding vector(384)`, `embedded_at`, `updated_at`), `dataset_meta` table, UTF-8 assumptions documented in comments. Do NOT create the HNSW index here (embedder owns it) | `init/01_schema.sql` | §4.2, REQ-002, REQ-013 | — |
+| **2.2** | DONE | Write `docker-compose.yml` skeleton: `postgres` service on `pgvector/pgvector:pg18`, port mapped to `127.0.0.1:5432`, healthcheck (`pg_isready`), named volumes `pgdata` + `model-cache`, init dir mount, env from `.env` | `docker-compose.yml` | REQ-001, REQ-002, SEC-001, §4.1 | 1.1, 2.1 |
+| **2.3** | DONE | Add `scheduler` service (`cybertecpostgresql/pg_timetable:latest`) depending on `postgres` healthy; write idempotent `init/02_timetable_job.sql` establishing the Phase 2 placeholder for the `rebuild_embeddings` registration path, to be finalized in 5.2 with the schedule from `${REBUILD_SCHEDULE}` | `docker-compose.yml`, `init/02_timetable_job.sql` | REQ-010, §4.4, PLT-002 | 2.2 |
 
 **Phase gate:** `docker compose config` passes; `docker compose up postgres` reaches healthy; `\d beers` shows the contract schema; `SELECT extversion FROM pg_extension WHERE extname='vector'` ≥ 0.7.0.
 
