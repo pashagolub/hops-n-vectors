@@ -99,13 +99,13 @@ Goal: `postgres` service boots with full schema; compose file validates.
 
 Goal: validated, idempotent dataset load visible in compose logs.
 
-| Task | Description | Files | Spec refs | Depends on |
-|---|---|---|---|---|
-| **3.1** | Create `app/pyproject.toml` (deps: `psycopg[binary]`, `pgvector`, `sentence-transformers`, dev: `pytest`, `ruff`, `testcontainers`) and multi-arch `app/Dockerfile` on `python:3.12-slim` (CPU-only torch wheel; works on x86_64 + arm64) | `app/pyproject.toml`, `app/Dockerfile` | PLT-003, CON-004, CON-006, GUD-001 | 1.1 |
-| **3.2** | Implement `hopsnvectors/db.py` (env-driven connection factory) and `hopsnvectors/textcompose.py`: compose `info` from name, style, description/notes, key taste attributes; `sha256(info)` as `text_hash`; handle empty/NULL fields (edge case 3) | `app/hopsnvectors/db.py`, `app/hopsnvectors/textcompose.py` | REQ-005, REQ-013 | 3.1 |
-| **3.3** | Implement `hopsnvectors/loader.py`: validate CSV columns/format up-front (abort with clear error on failure — SEC-002, edge case 1); deduplicate on natural key with logged count (edge case 2); upsert via `INSERT ... ON CONFLICT (beer_name, brewery, style) DO UPDATE` setting `info`, `text_hash`, `updated_at` only when text changed; write `dataset_meta` rows (source URL, CC BY 4.0, snapshot version, load timestamp, row count); print human-readable progress (REQ-011); parameterized SQL only | `app/hopsnvectors/loader.py` | REQ-003, REQ-011, REQ-014, SEC-002, SEC-003, COM-001 | 3.2 |
-| **3.4** | Unit tests: textcompose (composition, hashing, empty fields), loader validation (good file, missing column, LFS-pointer garbage, duplicates), UTF-8 names | `app/tests/test_textcompose.py`, `app/tests/test_loader.py` | §6 unit scope | 3.3, 1.3 |
-| **3.5** | Wire `loader` service into compose: local build, bind-mount `data/` read-only, `depends_on: postgres: condition: service_healthy`, run-to-completion (init-container pattern) | `docker-compose.yml` | PAT-001, §4.1 | 3.3, 2.2 |
+| Task | Status | Description | Files | Spec refs | Depends on |
+|---|---|---|---|---|---|
+| **3.1** | DONE | Create `app/pyproject.toml` (deps: `psycopg[binary]`, `pgvector`, `sentence-transformers`, dev: `pytest`, `ruff`, `testcontainers`) and multi-arch `app/Dockerfile` on `python:3.12-slim` (CPU-only torch wheel; works on x86_64 + arm64) | `app/pyproject.toml`, `app/Dockerfile` | PLT-003, CON-004, CON-006, GUD-001 | 1.1 |
+| **3.2** | DONE | Implement `hopsnvectors/db.py` (env-driven connection factory) and `hopsnvectors/textcompose.py`: compose `info` from name, style, description/notes, key taste attributes; `sha256(info)` as `text_hash`; handle empty/NULL fields (edge case 3) | `app/hopsnvectors/db.py`, `app/hopsnvectors/textcompose.py` | REQ-005, REQ-013 | 3.1 |
+| **3.3** | DONE | Implement `hopsnvectors/loader.py`: validate CSV columns/format up-front (abort with clear error on failure — SEC-002, edge case 1); deduplicate on natural key with logged count (edge case 2); upsert via `INSERT ... ON CONFLICT (beer_name, brewery, style) DO UPDATE` setting `info`, `text_hash`, `updated_at` only when text changed; write `dataset_meta` rows (source URL, CC BY 4.0, snapshot version, load timestamp, row count); print human-readable progress (REQ-011); parameterized SQL only | `app/hopsnvectors/loader.py` | REQ-003, REQ-011, REQ-014, SEC-002, SEC-003, COM-001 | 3.2 |
+| **3.4** | DONE | Unit tests: textcompose (composition, hashing, empty fields), loader validation (good file, missing column, LFS-pointer garbage, duplicates), UTF-8 names | `app/tests/test_textcompose.py`, `app/tests/test_loader.py` | §6 unit scope | 3.3, 1.3 |
+| **3.5** | DONE | Wire `loader` service into compose: local build, bind-mount `data/` read-only, `depends_on: postgres: condition: service_healthy`, run-to-completion (init-container pattern) | `docker-compose.yml` | PAT-001, §4.1 | 3.3, 2.2 |
 
 **Phase gate:** `pytest app/tests -k "not integration"` green; `docker compose up loader` exits 0, logs `loaded N beers (inserted=… updated=…)`; second run inserts 0 duplicates (AC-006 partial).
 
