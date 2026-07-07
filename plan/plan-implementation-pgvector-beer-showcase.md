@@ -115,11 +115,11 @@ Goal: validated, idempotent dataset load visible in compose logs.
 
 Goal: all rows embedded, HNSW index created, model cached in volume.
 
-| Task | Description | Files | Spec refs | Depends on |
-|---|---|---|---|---|
-| **4.1** | Implement `hopsnvectors/embedder.py`: load `all-MiniLM-L12-v2` via sentence-transformers with `HF_HOME` pointed at the `model-cache` volume; select pending rows `WHERE info <> '' AND (embedding IS NULL OR embedded_at IS NULL OR text_hash IS DISTINCT FROM sha256(info))` using `FOR UPDATE SKIP LOCKED` (edge case 7); embed in batches of `EMBED_BATCH_SIZE` with `executemany` updates setting `embedding`, `embedded_at` (PAT-003); print progress `embedding X/Y (Z%)` (REQ-011); resumable after interrupt (edge case 6); clear error message if Hugging Face unreachable on cold cache (edge case 10) | `app/hopsnvectors/embedder.py` | REQ-004, REQ-005, REQ-011, REQ-013, PAT-002, PAT-003, CON-001, CON-005 | 3.2 |
-| **4.2** | After embedding pass, create HNSW index `beers_embedding_hnsw USING hnsw (embedding vector_cosine_ops)` idempotently (`IF NOT EXISTS`); log creation (IVFFlat is demo-script-only per REQ-006) | `app/hopsnvectors/embedder.py` | REQ-006, §4.2 | 4.1 |
-| **4.3** | Wire `embedder` service into compose: `depends_on: loader: condition: service_completed_successfully`, `model-cache` volume mounted, memory limit 2 GB; add post-completion log hint for TUI/psql commands (AC-001) | `docker-compose.yml` | PAT-001, PER-001, REQ-014, REQ-009 | 4.1, 3.5 |
+| Task | Status | Description | Files | Spec refs | Depends on |
+|---|---|---|---|---|---|
+| **4.1** | DONE | Implement `hopsnvectors/embedder.py`: load `all-MiniLM-L12-v2` via sentence-transformers with `HF_HOME` pointed at the `model-cache` volume; select pending rows `WHERE info <> '' AND (embedding IS NULL OR embedded_at IS NULL OR text_hash IS DISTINCT FROM sha256(info))` using `FOR UPDATE SKIP LOCKED` (edge case 7); embed in batches of `EMBED_BATCH_SIZE` with `executemany` updates setting `embedding`, `embedded_at` (PAT-003); print progress `embedding X/Y (Z%)` (REQ-011); resumable after interrupt (edge case 6); clear error message if Hugging Face unreachable on cold cache (edge case 10) | `app/hopsnvectors/embedder.py` | REQ-004, REQ-005, REQ-011, REQ-013, PAT-002, PAT-003, CON-001, CON-005 | 3.2 |
+| **4.2** | DONE | After embedding pass, create HNSW index `beers_embedding_hnsw USING hnsw (embedding vector_cosine_ops)` idempotently (`IF NOT EXISTS`); log creation (IVFFlat is demo-script-only per REQ-006) | `app/hopsnvectors/embedder.py` | REQ-006, §4.2 | 4.1 |
+| **4.3** | DONE | Wire `embedder` service into compose: `depends_on: loader: condition: service_completed_successfully`, `model-cache` volume mounted, memory limit 2 GB; add post-completion log hint for TUI/psql commands (AC-001) | `docker-compose.yml` | PAT-001, PER-001, REQ-014, REQ-009 | 4.1, 3.5 |
 
 **Phase gate:** full `docker compose up` completes; `SELECT count(*) FROM beers WHERE embedding IS NULL AND info <> ''` returns 0 (AC-003); HNSW index exists; restart without `-v` re-downloads nothing and is ready < 1 min (AC-006); initial embed < 5 min on 4-core CPU (PER-002/AC-009).
 
