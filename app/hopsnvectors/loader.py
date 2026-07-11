@@ -2,8 +2,7 @@
 from __future__ import annotations
 
 import csv
-import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from hopsnvectors.db import get_connection
@@ -228,7 +227,7 @@ def load(csv_path: Path = _DEFAULT_CSV) -> None:
             updated = total - inserted
 
             # Record provenance in dataset_meta (idempotent upsert).
-            now_iso = datetime.now(timezone.utc).isoformat()
+            now_iso = datetime.now(UTC).isoformat()
             for key, value in {
                 "source_url":       _SOURCE_URL,
                 "license":          _LICENSE,

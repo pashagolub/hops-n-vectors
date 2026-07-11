@@ -1,8 +1,6 @@
 """Unit tests for hopsnvectors.textcompose."""
-import pytest
 
 from hopsnvectors.textcompose import compose_info, text_hash
-
 
 # ---------------------------------------------------------------------------
 # compose_info

@@ -184,12 +184,12 @@ Goal: numbered, self-describing scripts for the live talk. Each script starts wi
 
 ## Phase 8 — Developer UX: Makefile & README
 
-| Task | Description | Files | Spec refs | Depends on |
-|---|---|---|---|---|
-| **8.1** | `Makefile` targets: `up`, `tui`, `psql` (`docker compose exec postgres psql -U beer -d beer`), `demo` (runs numbered scripts), `reset` (`down -v` + up), `test`, `lint` | `Makefile` | GUD-004, REQ-009 | Phases 2–7 |
-| **8.2** | `README.md`: quickstart (one command), presenter's script (recommended live-demo order incl. psql edit → watch pg_timetable re-embed), TUI/psql usage, dataset attribution (CC BY 4.0), model license (Apache 2.0), responsible-consumption disclaimer, offline behaviour & first-start network note, chunking as "real-life next step" talking point | `README.md` | GUD-005, COM-001..003, REQ-009 | Phases 2–7 |
+| Task | Status | Description | Files | Spec refs | Depends on |
+|---|---|---|---|---|---|
+| **8.1** | DONE | `Makefile` targets: `up`, `tui`, `psql` (`docker compose exec postgres psql -U beer -d beer`), `demo` (runs numbered scripts), `reset` (`down -v` + up), `test`, `lint` | `Makefile` | GUD-004, REQ-009 | Phases 2–7 |
+| **8.2** | DONE | `README.md`: quickstart (one command), presenter's script (recommended live-demo order incl. psql edit → watch pg_timetable re-embed), TUI/psql usage, dataset attribution (CC BY 4.0), model license (Apache 2.0), responsible-consumption disclaimer, offline behaviour & first-start network note, chunking as "real-life next step" talking point | `README.md` | GUD-005, COM-001..003, REQ-009 | Phases 2–7 |
 
-**Phase gate:** every documented command works verbatim on a clean checkout; README covers all §10 documentation checklist items.
+**Phase gate:** VERIFIED 2026-07-11 — every documented command works verbatim on a clean checkout; README covers all §10 documentation checklist items. (Bonus: placeholder CI replaced with working lint + unit-test + compose-config workflow — first green Actions run; full pipeline remains Phase 9.)
 
 ---
 

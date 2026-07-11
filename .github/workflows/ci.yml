@@ -1,1 +1,47 @@
-# Placeholder CI workflow (Phase 9).
+# Lint + unit tests on every push/PR.
+# Integration and E2E jobs are added in Phase 9 (plan tasks 9.1-9.3).
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff
+      - run: ruff check hopsnvectors/ tests/
+        working-directory: app
+      - name: hadolint (Dockerfile)
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: app/Dockerfile
+          failure-threshold: warning
+      - name: shellcheck (entrypoint)
+        run: shellcheck app/entrypoint.sh
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # Unit tests exercise parsing/hash/validation logic only; the heavy
+      # ML deps (torch, sentence-transformers) are imported lazily and are
+      # not needed here.
+      - run: pip install "psycopg[binary]>=3.1" "pgvector>=0.3" pytest
+      - run: python -m pytest tests -q -k "not integration"
+        working-directory: app
+
+  compose-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose config -q

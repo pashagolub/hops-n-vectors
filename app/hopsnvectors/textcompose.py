@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import hashlib
 
-
 # Taste attribute column names (as stored in DB) and their display labels.
 _TASTE_LABELS: list[tuple[str, str]] = [
     ("astringency", "Astringency"),

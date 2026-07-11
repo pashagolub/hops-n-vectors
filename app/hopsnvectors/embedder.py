@@ -11,13 +11,12 @@ Entry points:
 from __future__ import annotations
 
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import psycopg
 from pgvector.psycopg import register_vector
 
 from hopsnvectors.db import get_connection
-
 
 _MODEL_NAME = "all-MiniLM-L12-v2"
 _DEFAULT_BATCH_SIZE = int(os.environ.get("EMBED_BATCH_SIZE", "64"))
@@ -104,7 +103,7 @@ def embed_pending(batch_size: int = _DEFAULT_BATCH_SIZE) -> int:
             ids = [r[0] for r in rows]
             texts = [r[1] for r in rows]
             vectors = model.encode(texts, show_progress_bar=False)
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
 
             with conn.cursor() as cur:
                 cur.executemany(
