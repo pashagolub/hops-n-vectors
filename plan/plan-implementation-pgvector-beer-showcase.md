@@ -168,17 +168,17 @@ Goal: interactive recommendations plus non-interactive CI mode.
 
 Goal: numbered, self-describing scripts for the live talk. Each script starts with a comment block explaining what it demonstrates and expected observations (GUD-003).
 
-| Task | Description | Files | Spec refs | Depends on |
-|---|---|---|---|---|
-| **7.1** | `01_operators.sql`: `<->`, `<#>`, `<=>`, `<+>` on sample vectors and real beers | `demo/01_operators.sql` | REQ-012 | Phase 4 |
-| **7.2** | `02_explain_no_index.sql`: drop HNSW index, `EXPLAIN ANALYZE` showing seq scan + top-N heapsort | `demo/02_explain_no_index.sql` | REQ-012, AC-004 | Phase 4 |
-| **7.3** | `03_hnsw.sql`: recreate HNSW, `EXPLAIN ANALYZE` showing index scan, lower latency | `demo/03_hnsw.sql` | REQ-012, AC-004 | 7.2 |
-| **7.4** | `04_ivfflat.sql`: create IVFFlat (`lists` tuned for ~3,300 rows), compare plan/recall vs HNSW, drop afterwards | `demo/04_ivfflat.sql` | REQ-006, REQ-012 | 7.3 |
-| **7.5** | `05_filtering_pitfalls.sql`: selective `WHERE` + ANN returning fewer rows than `LIMIT`; show the effect reproducibly | `demo/05_filtering_pitfalls.sql` | REQ-012, AC-008 | 7.3 |
-| **7.6** | `06_iterative_scan.sql`: `SET hnsw.iterative_scan = relaxed_order` (and ivfflat equivalent) fixing 7.5's shortfall | `demo/06_iterative_scan.sql` | REQ-012, AC-008 | 7.5 |
-| **7.7** | `07_similarity_limits.sql`: semantic adjacency pitfalls (e.g., "healthy" vs "unhealthy" style prompts) | `demo/07_similarity_limits.sql` | REQ-012 | Phase 4 |
+| Task | Status | Description | Files | Spec refs | Depends on |
+|---|---|---|---|---|---|
+| **7.1** | DONE | `01_operators.sql`: `<->`, `<#>`, `<=>`, `<+>` on sample vectors and real beers | `demo/01_operators.sql` | REQ-012 | Phase 4 |
+| **7.2** | DONE | `02_explain_no_index.sql`: drop HNSW index, `EXPLAIN ANALYZE` showing seq scan + top-N heapsort | `demo/02_explain_no_index.sql` | REQ-012, AC-004 | Phase 4 |
+| **7.3** | DONE | `03_hnsw.sql`: recreate HNSW, `EXPLAIN ANALYZE` showing index scan, lower latency | `demo/03_hnsw.sql` | REQ-012, AC-004 | 7.2 |
+| **7.4** | DONE | `04_ivfflat.sql`: create IVFFlat (`lists` tuned for ~3,300 rows), compare plan/recall vs HNSW, drop afterwards | `demo/04_ivfflat.sql` | REQ-006, REQ-012 | 7.3 |
+| **7.5** | DONE | `05_filtering_pitfalls.sql`: selective `WHERE` + ANN returning fewer rows than `LIMIT`; show the effect reproducibly | `demo/05_filtering_pitfalls.sql` | REQ-012, AC-008 | 7.3 |
+| **7.6** | DONE | `06_iterative_scan.sql`: `SET hnsw.iterative_scan = relaxed_order` (and ivfflat equivalent) fixing 7.5's shortfall | `demo/06_iterative_scan.sql` | REQ-012, AC-008 | 7.5 |
+| **7.7** | DONE | `07_similarity_limits.sql`: semantic adjacency pitfalls (e.g., "healthy" vs "unhealthy" style prompts) | `demo/07_similarity_limits.sql` | REQ-012 | Phase 4 |
 
-**Phase gate:** all scripts run without error in numbered order against a fresh stack (§10); `05` demonstrably returns fewer rows than `LIMIT` and `06` restores the full count (AC-008).
+**Phase gate:** VERIFIED 2026-07-11 — all scripts run without error in numbered order against a fresh stack (§10); `05` demonstrably returns fewer rows than `LIMIT` and `06` restores the full count (AC-008).
 
 ---
 
