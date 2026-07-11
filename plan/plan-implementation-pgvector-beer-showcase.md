@@ -152,15 +152,15 @@ Goal: collapse the stack to two containers (`postgres` + `scheduler` with bundle
 
 Goal: interactive recommendations plus non-interactive CI mode.
 
-| Task | Description | Files | Spec refs | Depends on |
-|---|---|---|---|---|
-| **6.1** | Implement `hopsnvectors/tui.py` command parsing + REPL per §4.5: free text → prompt search; `:like <id>`, `:top <n>` (1–50), `:explain` toggle, `:help`, `:quit`/Ctrl-D. Validate prompts: reject empty or > 4,000 chars with friendly message (edge case 4); friendly "beer not found" for bad `:like` id (edge case 5); responsible-consumption banner on start (COM-003) | `app/hopsnvectors/tui.py` | REQ-007, REQ-008, §4.5, SEC-003, COM-003 | 3.2 |
-| **6.2** | Implement search execution: embed prompt with cached model, run §4.3 query contracts (parameterized), display name/style/truncated info/distance; `:explain` prints `EXPLAIN ANALYZE` of the same query; default N from `TOP_N_DEFAULT` | `app/hopsnvectors/tui.py` | REQ-007, REQ-008, §4.3, PER-003 | 6.1, 4.1 |
-| **6.3** | Add non-interactive mode `--query <text> --json [--top n]` emitting valid JSON (for CI/E2E) | `app/hopsnvectors/tui.py` | §6 E2E, §10 | 6.2 |
-| **6.4** | Unit tests for command parsing and input validation (model mocked) | `app/tests/test_tui_parsing.py` | §6 unit scope | 6.1 |
-| **6.5** | Add a `tui` shortcut to the `scheduler` image (e.g., console-script/argv dispatch in `entrypoint.sh`) so `docker compose run --rm scheduler tui` starts the TUI with model-cache mounted; no separate compose service | `app/entrypoint.sh`, `docker-compose.yml` | §4.1 | 6.2, 5.3 |
+| Task | Status | Description | Files | Spec refs | Depends on |
+|---|---|---|---|---|---|
+| **6.1** | DONE | Implement `hopsnvectors/tui.py` command parsing + REPL per §4.5: free text → prompt search; `:like <id>`, `:top <n>` (1–50), `:explain` toggle, `:help`, `:quit`/Ctrl-D. Validate prompts: reject empty or > 4,000 chars with friendly message (edge case 4); friendly "beer not found" for bad `:like` id (edge case 5); responsible-consumption banner on start (COM-003) | `app/hopsnvectors/tui.py` | REQ-007, REQ-008, §4.5, SEC-003, COM-003 | 3.2 |
+| **6.2** | DONE | Implement search execution: embed prompt with cached model, run §4.3 query contracts (parameterized), display name/style/truncated info/distance; `:explain` prints `EXPLAIN ANALYZE` of the same query; default N from `TOP_N_DEFAULT` | `app/hopsnvectors/tui.py` | REQ-007, REQ-008, §4.3, PER-003 | 6.1, 4.1 |
+| **6.3** | DONE | Add non-interactive mode `--query <text> --json [--top n]` emitting valid JSON (for CI/E2E) | `app/hopsnvectors/tui.py` | §6 E2E, §10 | 6.2 |
+| **6.4** | DONE | Unit tests for command parsing and input validation (model mocked) | `app/tests/test_tui_parsing.py` | §6 unit scope | 6.1 |
+| **6.5** | DONE | Add a `tui` shortcut to the `scheduler` image (e.g., console-script/argv dispatch in `entrypoint.sh`) so `docker compose run --rm scheduler tui` starts the TUI with model-cache mounted; no separate compose service | `app/entrypoint.sh`, `docker-compose.yml` | §4.1 | 6.2, 5.3 |
 
-**Phase gate:** `docker compose run --rm scheduler tui --query lemon --json` returns 5 results as valid JSON in < 2 s warm (AC-002, PER-003); interactive commands behave per §4.5.
+**Phase gate:** VERIFIED 2026-07-11 — `docker compose run --rm scheduler tui --query lemon --json` returns 5 results as valid JSON in < 2 s warm (AC-002, PER-003); interactive commands behave per §4.5.
 
 ---
 
