@@ -28,7 +28,7 @@ _PENDING_WHERE = """
     AND (
         embedding IS NULL
         OR embedded_at IS NULL
-        OR text_hash IS DISTINCT FROM encode(sha256(info::bytea), 'hex')
+        OR text_hash IS DISTINCT FROM encode(sha256(convert_to(info, 'UTF8')), 'hex')
     )
 """
 
@@ -112,7 +112,7 @@ def embed_pending(batch_size: int = _DEFAULT_BATCH_SIZE) -> int:
                     UPDATE beers
                     SET embedding   = %s,
                         embedded_at = %s,
-                        text_hash   = encode(sha256(info::bytea), 'hex')
+                        text_hash   = encode(sha256(convert_to(info, 'UTF8')), 'hex')
                     WHERE id = %s
                     """,
                     [(vectors[i], now, ids[i]) for i in range(len(ids))],
@@ -153,7 +153,7 @@ def main() -> None:
         print(f"Done — embedded {embedded} row(s).", flush=True)
     print(
         "\nStack ready.  Next steps:\n"
-        "  docker compose run --rm tui                            # interactive recommender\n"
+        "  docker compose run --rm scheduler tui                  # interactive recommender\n"
         "  docker compose exec postgres psql -U beer -d beer     # explore with psql",
         flush=True,
     )

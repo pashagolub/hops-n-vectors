@@ -1,8 +1,8 @@
 ---
 title: Architecture Specification — "Hops'n'Vectors" PostgreSQL + pgvector Beer Recommendation Showcase
-version: 1.1
+version: 1.2
 date_created: 2026-07-06
-last_updated: 2026-07-06
+last_updated: 2026-07-11
 owner: hops-n-vectors maintainers
 tags: [architecture, app, infrastructure, design, postgres, pgvector, docker, demo, workshop]
 ---
@@ -61,7 +61,7 @@ This specification defines a self-contained, Docker-Compose-based showcase proje
 - **REQ-007**: A TUI MUST be available that accepts a free-text prompt (e.g., "lemon"), embeds it, and returns the top-N most similar beers ordered by cosine distance (`<=>`), with N configurable (default 5).
 - **REQ-008**: The TUI MUST also support a "more like this beer" mode: given a beer id or name, return similar beers excluding the input beer itself.
 - **REQ-009**: Users MUST be able to open an interactive `psql` session against the database with a single documented command (e.g., `docker compose exec postgres psql -U beer -d beer`).
-- **REQ-010**: `pg_timetable` MUST run as a dedicated container and MUST be configured with a `rebuild_embeddings` job that rebuilds embeddings for rows where the embedding is missing or the source text changed since last embedding (e.g., after a presenter edits a beer's `info` via psql during a workshop).
+- **REQ-010**: `pg_timetable` MUST run in the `scheduler` container and MUST be configured with a `rebuild_embeddings` job that rebuilds embeddings for rows where the embedding is missing or the source text changed since last embedding (e.g., after a presenter edits a beer's `info` via psql during a workshop). The job MUST be a pg_timetable PROGRAM task invoking the embedder directly inside the scheduler container (no cross-container signaling).
 - **REQ-011**: Startup progress (row loading, embedding progress, index creation) MUST be visible in `docker compose up` log output in a human-readable form (progress counters or percentage).
 - **REQ-012**: The repository MUST include a set of ready-to-run demo SQL scripts showcasing: distance operators (`<->`, `<#>`, `<=>`, `<+>`), exact vs. HNSW vs. IVFFlat query plans via `EXPLAIN ANALYZE`, filtering pitfalls with ANN indexes (fewer rows than `LIMIT`), `hnsw.iterative_scan` / `ivfflat.iterative_scan` settings, and similarity limitations (e.g., "healthy" vs "unhealthy" adjacency).
 - **REQ-013**: Change detection for embedding rebuilds MUST be implemented (e.g., a hash column of the source text, or `embedded_at` vs `updated_at` timestamps), so the rebuild job only re-embeds changed or new rows.
@@ -75,7 +75,7 @@ This specification defines a self-contained, Docker-Compose-based showcase proje
 
 ### Performance Requirements
 
-- **PER-001**: The embedding model plus runtime MUST fit within 2 GB of RAM for the embedder container; the total compose stack MUST run within 4 GB of RAM.
+- **PER-001**: The embedding model plus runtime MUST fit within 2 GB of RAM for the scheduler container; the total compose stack MUST run within 4 GB of RAM.
 - **PER-002**: Full initial embedding of the dataset (~3,300 rows) MUST complete within 5 minutes on a typical laptop CPU (no GPU required or assumed).
 - **PER-003**: TUI query latency (embed prompt + vector search) SHOULD be under 2 seconds after model warm-up.
 
@@ -86,7 +86,7 @@ This specification defines a self-contained, Docker-Compose-based showcase proje
 - **CON-003**: The dataset CSV MUST be bundled in the repository as the primary and only data source (permitted by CC BY 4.0 with attribution). The Kaggle dataset is static (last updated ~2021), so no runtime download or periodic re-sync is implemented; this guarantees the demo never fails due to network/auth issues.
 - **CON-004**: No GPU dependencies. All components MUST run on CPU only, on both x86_64 and arm64 (Apple Silicon) Docker hosts.
 - **CON-005**: All embedding generation happens locally; no external embedding/LLM API calls are permitted.
-- **CON-006**: Only official or well-known base images may be used (e.g., `pgvector/pgvector:pg18`, `cybertecpostgresql/pg_timetable`, `python:3.12-slim`).
+- **CON-006**: Only official or well-known base images may be used (e.g., `pgvector/pgvector:pg18`, `python:3.12-slim`). The `scheduler` image is a local build on `python:3.12-slim` that copies the `pg_timetable` binary from the official `cybertecpostgresql/pg_timetable` image (multi-stage build).
 
 ### Guidelines
 
@@ -98,7 +98,7 @@ This specification defines a self-contained, Docker-Compose-based showcase proje
 
 ### Patterns
 
-- **PAT-001**: Pipeline containers (loader, embedder) follow the init-container pattern: run to completion, exit 0, and gate dependent services via compose `depends_on: condition: service_completed_successfully`.
+- **PAT-001**: Pipeline stages (loader, embedder) run to completion sequentially in the `scheduler` container entrypoint before `pg_timetable` starts: load → embed → exec pg_timetable. Each stage exits non-zero on failure (failing the container) and its progress is observable in `docker compose up` output.
 - **PAT-002**: Embedding rebuild jobs are incremental and idempotent — driven by `WHERE embedding IS NULL OR text_hash <> stored_hash` predicates, safe to run repeatedly.
 - **PAT-003**: The embedder batches updates (`executemany` / `COPY`) rather than row-by-row commits.
 
@@ -106,15 +106,16 @@ This specification defines a self-contained, Docker-Compose-based showcase proje
 
 ### 4.1 Container Topology (docker-compose services)
 
+The stack consists of exactly **two containers**:
+
 | Service | Image (indicative) | Role | Depends on |
 |---|---|---|---|
 | `postgres` | `pgvector/pgvector:pg18` | PostgreSQL + pgvector; schema bootstrap via `/docker-entrypoint-initdb.d` | — |
-| `loader` | local build (`python:3.12-slim`) | Validate + upsert bundled dataset; run-to-completion | `postgres` (healthy) |
-| `embedder` | local build (`python:3.12-slim`) | Generate embeddings for pending rows; create HNSW index; run-to-completion | `loader` (completed) |
-| `scheduler` | `cybertecpostgresql/pg_timetable:latest` | Executes the scheduled re-embed job | `postgres` (healthy) |
-| `tui` | local build (`python:3.12-slim`) | Interactive recommendation TUI (attached via `docker compose run tui` or `docker attach`) | `embedder` (completed) |
+| `scheduler` | local build (`python:3.12-slim` + `pg_timetable` binary) | Entrypoint runs loader → embedder to completion, then execs `pg_timetable`; hosts the Python tools (loader/embedder/TUI) | `postgres` (healthy) |
 
-Named volumes: `pgdata` (database), `model-cache` (Hugging Face model cache). The dataset CSV ships in the repository and is bind-mounted read-only into the loader.
+The TUI is not a separate service: it runs on demand from the same image, e.g., `docker compose run --rm scheduler tui` (or `docker compose exec scheduler python -m hopsnvectors.tui`).
+
+Named volumes: `pgdata` (database), `model-cache` (Hugging Face model cache, mounted into `scheduler`). The dataset CSV ships in the repository and is bind-mounted read-only into the `scheduler` container.
 
 ### 4.2 Database Schema (core contract)
 
@@ -171,9 +172,9 @@ LIMIT $2;
 
 | Job | Schedule (default) | Action |
 |---|---|---|
-| `rebuild_embeddings` | every 15 minutes (`*/15 * * * *`) | Invokes embedder logic for rows `WHERE embedding IS NULL OR embedded_at IS NULL OR text_hash IS DISTINCT FROM <hash of info>` |
+| `rebuild_embeddings` | every 15 minutes (`*/15 * * * *`) | PROGRAM task executing the embedder (e.g., `python -m hopsnvectors.embedder --once`) inside the `scheduler` container for rows `WHERE embedding IS NULL OR embedded_at IS NULL OR text_hash IS DISTINCT FROM <hash of info>` |
 
-The job is registered by an idempotent SQL script executed at bootstrap (`timetable.add_job` / chain definitions). The schedule MUST be overridable via an environment variable so presenters can trigger visible re-embedding during a workshop (e.g., set to every minute). Because the source dataset is a static snapshot, no dataset re-sync job exists; the rebuild job reacts to changes users make directly in the database.
+The job is registered by an idempotent SQL script executed at bootstrap (`timetable.add_job` / chain definitions) with `kind => 'PROGRAM'`. Because pg_timetable and the embedder live in the same container, the PROGRAM task runs the embedder directly — no signaling, sidecars, or cross-container orchestration. The schedule MUST be overridable via an environment variable so presenters can trigger visible re-embedding during a workshop (e.g., set to every minute). Because the source dataset is a static snapshot, no dataset re-sync job exists; the rebuild job reacts to changes users make directly in the database.
 
 ### 4.5 TUI Command Contract
 
@@ -227,8 +228,8 @@ The job is registered by an idempotent SQL script executed at bootstrap (`timeta
 - **Why all-MiniLM-L12-v2**: small (~130 MB, 384 dims), Apache-2.0 licensed, runs comfortably on laptop CPUs, and is the exact model used in the source presentation — query plans and timings will resemble the slides.
 - **Why one embedding per beer (no chunking)**: descriptions are short (<4,000 chars); chunking is deliberately out of scope but referenced in the README as the "real life" next step, mirroring slides 48–51.
 - **Why both HNSW and IVFFlat**: the core teaching moment is comparing exact scan vs. two ANN index types with `EXPLAIN ANALYZE`, showing the accuracy/speed trade-off and index-specific behaviour.
-- **Why pg_timetable**: demonstrates a realistic operational pattern — data changes over time and embeddings must be kept in sync — using a database-native scheduler that itself is demo-worthy in workshops; presenters edit a beer's description in psql and watch the scheduled job re-embed just that row.
-- **Why init-container pattern**: makes the pipeline observable in `docker compose up` output (REQ-011) and keeps each stage independently re-runnable.
+- **Why pg_timetable**: demonstrates a realistic operational pattern — data changes over time and embeddings must be kept in sync — using a database-native scheduler that itself is demo-worthy in workshops; presenters edit a beer's description in psql and watch the scheduled PROGRAM task re-embed just that row.
+- **Why a single scheduler container with bundled tools**: pg_timetable's PROGRAM task kind executes binaries on the host where the scheduler runs; bundling the Python tools in the same image lets the re-embed job invoke the embedder directly, avoiding cross-container signaling and shrinking the stack to two containers (postgres + scheduler). The entrypoint sequence (load → embed → exec pg_timetable) keeps the pipeline observable in `docker compose up` output (REQ-011) and each stage independently re-runnable.
 - **Why bundled dataset (no runtime download)**: the Kaggle dataset is a static snapshot (last updated ~2021), so periodic re-sync would add failure modes (network, Kaggle auth — a classic live-demo killer) without ever fetching new data. CC BY 4.0 permits redistribution with attribution, making the demo fully network-independent for data.
 
 ## 8. Dependencies & External Integrations
@@ -267,14 +268,15 @@ The job is registered by an idempotent SQL script executed at bootstrap (`timeta
 ```text
 # Happy path (presenter flow)
 $ docker compose up
-postgres  | database system is ready to accept connections
-loader    | validating bundled dataset ... ok
-loader    | loaded 3358 beers (inserted=3358 updated=0)
-embedder  | embedding 3358/3358 (100%) in 142s
-embedder  | CREATE INDEX beers_embedding_hnsw ... done
-tui-hint  | Run: docker compose run --rm tui   |   psql: docker compose exec postgres psql -U beer beer
+postgres   | database system is ready to accept connections
+scheduler  | validating bundled dataset ... ok
+scheduler  | loaded 3358 beers (inserted=3358 updated=0)
+scheduler  | embedding 3358/3358 (100%) in 142s
+scheduler  | CREATE INDEX beers_embedding_hnsw ... done
+scheduler  | Run: docker compose run --rm scheduler tui   |   psql: docker compose exec postgres psql -U beer beer
+scheduler  | starting pg_timetable ...
 
-$ docker compose run --rm tui
+$ docker compose run --rm scheduler tui
 🍺 > lemon
  1. Sun Drift        (Saison)  d=0.31  "…bright notes of citrus and black tea…"
  2. Lemon Lager      (Lager)   d=0.34  "…freshly squeezed lemon juice…"
@@ -303,7 +305,7 @@ Edge cases the implementation MUST handle:
 | 4 | TUI prompt is empty or > 4,000 chars | Reject with a friendly message; never send to model/DB |
 | 5 | `:like <id>` with nonexistent id | Friendly "beer not found" message |
 | 6 | Embedder interrupted mid-run (Ctrl-C, crash) | Rerun continues from pending rows (PAT-002); no partial-batch corruption |
-| 7 | pg_timetable job fires while embedder init-container still running | Job's WHERE predicate makes concurrent runs harmless; advisory lock or `FOR UPDATE SKIP LOCKED` recommended |
+| 7 | pg_timetable PROGRAM task fires while another embed run is in progress (e.g., manual `docker compose run` or overlapping schedules) | Job's WHERE predicate makes concurrent runs harmless; advisory lock or `FOR UPDATE SKIP LOCKED` recommended |
 | 8 | Non-ASCII beer names/descriptions | UTF-8 end-to-end; database `UTF8` encoding mandatory |
 | 9 | arm64 host (Apple Silicon) | All images multi-arch; no x86-only wheels |
 | 10 | Hugging Face unreachable on first start (cold model cache) | Fail with a clear message explaining the one-time network requirement; retry-friendly |

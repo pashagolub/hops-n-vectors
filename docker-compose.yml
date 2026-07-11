@@ -20,51 +20,31 @@ services:
       - pgdata:/var/lib/postgresql
       - ./init:/docker-entrypoint-initdb.d:ro
 
-  loader:
+  # Single tools container (spec v1.2 §4.1): entrypoint runs
+  # loader -> embedder -> exec pg_timetable.  The rebuild_embeddings job is a
+  # pg_timetable PROGRAM task invoking the embedder in this same container.
+  # TUI: docker compose run --rm scheduler tui
+  scheduler:
     build:
       context: ./app
-    environment:
-      POSTGRES_HOST: postgres
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-    volumes:
-      - ./data:/data:ro
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: "no"
-
-  embedder:
-    build:
-      context: ./app
-    command: ["hopsnvectors.embedder"]
+    restart: unless-stopped
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
       EMBED_BATCH_SIZE: ${EMBED_BATCH_SIZE}
+      REBUILD_SCHEDULE: ${REBUILD_SCHEDULE}
+      TOP_N_DEFAULT: ${TOP_N_DEFAULT}
       HF_HOME: /model-cache
     volumes:
+      - ./data:/data:ro
+      - ./init:/app/init:ro
       - model-cache:/model-cache
-    depends_on:
-      loader:
-        condition: service_completed_successfully
-    mem_limit: 2g
-    restart: "no"
-
-  scheduler:
-    image: cybertecpostgresql/pg_timetable:latest
-    restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
-    command:
-      - postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
-      - --clientname=hops-n-vectors-scheduler
-    volumes:
-      - model-cache:/model-cache
+    mem_limit: 2g
 
 volumes:
   pgdata:

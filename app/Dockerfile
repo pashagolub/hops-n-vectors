@@ -1,3 +1,7 @@
+# Multi-stage: take the pg_timetable binary from the official image
+# (static Go binary, multi-arch) — spec v1.2 CON-006.
+FROM cybertecpostgresql/pg_timetable:latest AS timetable
+
 FROM python:3.12-slim
 
 WORKDIR /app
@@ -12,9 +16,13 @@ RUN pip install --no-cache-dir \
 COPY pyproject.toml .
 RUN pip install --no-cache-dir .
 
-COPY hopsnvectors/ hopsnvectors/
+COPY --from=timetable /pg_timetable /usr/local/bin/pg_timetable
 
-# Compose services override CMD to select loader / embedder / tui.
-ENTRYPOINT ["python", "-m"]
-CMD ["hopsnvectors.loader"]
+COPY hopsnvectors/ hopsnvectors/
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Default: load -> embed -> exec pg_timetable (PAT-001).
+# Pass "tui" (or "loader"/"embedder") as the first arg to run a tool instead.
+ENTRYPOINT ["/entrypoint.sh"]
 
