@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import pytest
-
-from hopsnvectors.tui import _truncate, parse_command, run_query_json
+from hopsnvectors.tui import _print_results, _truncate, parse_command, run_query_json
 
 # ---------------------------------------------------------------------------
 # parse_command — free-text prompts
@@ -228,3 +227,27 @@ def test_run_query_json_empty_string_raises_system_exit():
     with pytest.raises(SystemExit):
         run_query_json("", top=5)
 
+
+
+# ---------------------------------------------------------------------------
+# _print_results
+# ---------------------------------------------------------------------------
+
+
+def test_print_results_empty(capsys):
+    _print_results([])
+    out = capsys.readouterr().out
+    assert "No results" in out
+
+
+def test_print_results_single_row(capsys):
+    row = {
+        "beer_name": "Lemon Wheat",
+        "style": "Wheat",
+        "distance": 0.123,
+        "info": "Citrus lemon zesty beer",
+    }
+    _print_results([row])
+    out = capsys.readouterr().out
+    assert "Lemon Wheat" in out
+    assert "0.123" in out

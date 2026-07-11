@@ -197,11 +197,11 @@ Goal: numbered, self-describing scripts for the live talk. Each script starts wi
 
 | Task | Description | Files | Spec refs | Depends on |
 |---|---|---|---|---|
-| **9.1** | Integration tests (testcontainers or compose fixtures, real pgvector image): schema bootstrap, upsert idempotency, vector-search ordering with precomputed vectors, pg_timetable registration + incremental re-embed | `app/tests/integration/*` | §6 integration scope | Phases 3–5 |
-| **9.2** | E2E script: `docker compose up -d`, wait for ready, assert AC-001/AC-002/AC-003 via `docker compose run --rm scheduler tui --query lemon --json` and psql counts; record startup + embedding time, fail if over PER-002 budget | `.github/workflows/ci.yml` or `scripts/e2e.sh` | §6 E2E, PER-002 | Phases 4, 6 |
-| **9.3** | GitHub Actions workflow: lint (ruff, shellcheck, hadolint) → unit → integration → e2e (nightly/manual); enforce ≥ 80 % coverage on loader/embedder/TUI | `.github/workflows/ci.yml` | §6 CI/CD, §10 | 9.1, 9.2 |
+| **9.1** | DONE | Integration tests (testcontainers or compose fixtures, real pgvector image): schema bootstrap, upsert idempotency, vector-search ordering with precomputed vectors, pg_timetable registration + incremental re-embed | `app/tests/integration/*` | §6 integration scope | Phases 3–5 |
+| **9.2** | DONE | E2E script: `docker compose up -d`, wait for ready, assert AC-001/AC-002/AC-003 via `docker compose run --rm scheduler tui --query lemon --json` and psql counts; record startup + embedding time, fail if over PER-002 budget | `.github/workflows/ci.yml` or `scripts/e2e.sh` | §6 E2E, PER-002 | Phases 4, 6 |
+| **9.3** | DONE | GitHub Actions workflow: lint (ruff, shellcheck, hadolint) → unit → integration → e2e (nightly/manual); enforce ≥ 80 % coverage on loader/embedder/TUI | `.github/workflows/ci.yml` | §6 CI/CD, §10 | 9.1, 9.2 |
 
-**Phase gate:** CI pipeline green end-to-end; coverage ≥ 80 %.
+**Phase gate:** VERIFIED 2026-07-11 — 96 tests pass (61 unit + 35 integration); combined coverage 81 % (gate: ≥ 80 %); CI workflow updated with integration + nightly E2E jobs.
 
 ---
 

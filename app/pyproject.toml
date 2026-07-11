@@ -11,8 +11,10 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
+    "pytest-cov>=5.0",
     "ruff>=0.4",
     "testcontainers[postgres]>=4.0",
+    "numpy>=1.26",
 ]
 
 [build-system]
@@ -31,4 +33,6 @@ select = ["E", "F", "I", "UP"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["integration: marks tests as integration (require Docker / testcontainers)"]
+addopts = "--strict-markers"
 

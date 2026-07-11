@@ -1,11 +1,21 @@
-# Lint + unit tests on every push/PR.
-# Integration and E2E jobs are added in Phase 9 (plan tasks 9.1-9.3).
+# Lint + unit + integration + E2E tests.
+# Phase 9 (tasks 9.1–9.3): integration and E2E jobs added here.
 name: CI
 
 on:
   push:
     branches: [master]
   pull_request:
+  schedule:
+    # Nightly E2E run at 03:00 UTC on master
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+    inputs:
+      run_e2e:
+        description: "Run E2E tests"
+        required: false
+        default: "false"
+        type: boolean
 
 jobs:
   lint:
@@ -25,6 +35,8 @@ jobs:
           failure-threshold: warning
       - name: shellcheck (entrypoint)
         run: shellcheck app/entrypoint.sh
+      - name: shellcheck (e2e script)
+        run: shellcheck scripts/e2e.sh
 
   unit-tests:
     runs-on: ubuntu-latest
@@ -37,7 +49,31 @@ jobs:
       # ML deps (torch, sentence-transformers) are imported lazily and are
       # not needed here.
       - run: pip install "psycopg[binary]>=3.1" "pgvector>=0.3" pytest
-      - run: python -m pytest tests -q -k "not integration"
+      - run: python -m pytest tests --ignore=tests/integration -q
+        working-directory: app
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    # Integration tests pull pgvector/pgvector:pg18 via testcontainers — Docker
+    # is available on ubuntu-latest GitHub-hosted runners.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install all test dependencies
+        run: >
+          pip install
+          "psycopg[binary]>=3.1"
+          "pgvector>=0.3"
+          "testcontainers[postgres]>=4.0"
+          "numpy>=1.26"
+          pytest pytest-cov
+        working-directory: app
+      - name: Run unit + integration tests with coverage gate (≥ 80 %)
+        run: >
+          python -m pytest tests -q
+          --cov=hopsnvectors --cov-report=term-missing --cov-fail-under=80
         working-directory: app
 
   compose-config:
@@ -45,3 +81,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker compose config -q
+
+  e2e:
+    # Run nightly, on manual dispatch with run_e2e=true, or on workflow_dispatch.
+    if: >
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.run_e2e == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Copy env file
+        run: cp .env.example .env 2>/dev/null || cp .env .env || true
+      - name: Run E2E script
+        run: bash scripts/e2e.sh
+

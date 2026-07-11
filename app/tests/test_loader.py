@@ -5,7 +5,6 @@ import csv
 from pathlib import Path
 
 import pytest
-
 from hopsnvectors import loader as loader_module
 from hopsnvectors.loader import (
     REQUIRED_COLUMNS,

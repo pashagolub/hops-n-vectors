@@ -27,3 +27,6 @@ model-cache/
 Thumbs.db
 .vscode/
 .idea/
+.coverage
+coverage.xml
+htmlcov/
