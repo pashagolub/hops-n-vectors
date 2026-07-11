@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+
 from hopsnvectors.tui import _print_results, _truncate, parse_command, run_query_json
 
 # ---------------------------------------------------------------------------

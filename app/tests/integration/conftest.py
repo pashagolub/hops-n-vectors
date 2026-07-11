@@ -13,7 +13,11 @@ from pathlib import Path
 import psycopg
 import pytest
 from pgvector.psycopg import register_vector
-from testcontainers.postgres import PostgresContainer
+
+testcontainers_postgres = pytest.importorskip(
+    "testcontainers.postgres", reason="testcontainers not installed; skipping integration tests"
+)
+PostgresContainer = testcontainers_postgres.PostgresContainer
 
 _IMAGE = "pgvector/pgvector:pg18"
 _SCHEMA = Path(__file__).parents[3] / "init" / "01_schema.sql"

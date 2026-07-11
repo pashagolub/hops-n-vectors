@@ -13,6 +13,7 @@ import csv
 from pathlib import Path
 
 import pytest
+
 from hopsnvectors import loader as loader_module
 
 pytestmark = pytest.mark.integration
