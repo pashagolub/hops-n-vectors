@@ -1,6 +1,5 @@
 # Multi-stage: take the pg_timetable binary from the official image
 # (static Go binary, multi-arch) — spec v1.2 CON-006.
-# hadolint ignore=DL3007
 FROM cybertecpostgresql/pg_timetable:latest AS timetable
 
 FROM python:3.12-slim

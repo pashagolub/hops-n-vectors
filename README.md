@@ -278,7 +278,7 @@ for a one-line "what to say" per script.
 | `make demo` | Run all demo scripts in numbered order |
 | `make reset` | Tear down stack and volumes (full reset) |
 | `make test` | Run test suite |
-| `make lint` | Run linters (ruff, shellcheck) |
+| `make lint` | Run linter (ruff) |
 
 ---
 

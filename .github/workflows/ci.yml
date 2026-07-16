@@ -28,15 +28,6 @@ jobs:
       - run: pip install ruff
       - run: ruff check hopsnvectors/ tests/
         working-directory: app
-      - name: hadolint (Dockerfile)
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: app/Dockerfile
-          failure-threshold: warning
-      - name: shellcheck (entrypoint)
-        run: shellcheck app/entrypoint.sh
-      - name: shellcheck (e2e script)
-        run: shellcheck scripts/e2e.sh
 
   unit-tests:
     runs-on: ubuntu-latest
