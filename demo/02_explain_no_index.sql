@@ -10,6 +10,8 @@
 --   (script 03 recreates it)
 -- ============================================================
 
+\pset pager off
+
 \echo ''
 \echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
 \echo '  02 · Sequential scan — no index baseline'

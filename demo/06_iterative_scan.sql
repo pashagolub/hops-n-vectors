@@ -16,6 +16,13 @@
 --   The exact query that returned 0 rows in 05 now returns all 10 rows,
 --   with only a modest latency increase (visible in EXPLAIN ANALYZE).
 
+\pset pager off
+
+\echo ''
+\echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+\echo '  06 · Iterative scan'
+\echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+
 SET enable_seqscan = off;   -- same forced-ANN setup as 05
 
 \echo '=== Before: iterative scan off — 0 of 10 rows (the 05 pitfall) ==='

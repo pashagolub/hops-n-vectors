@@ -13,6 +13,8 @@
 -- READ-ONLY — no DDL, no DML
 -- ============================================================
 
+\pset pager off
+
 \echo ''
 \echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
 \echo '  01 · pgvector distance operators'

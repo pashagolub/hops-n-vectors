@@ -9,6 +9,8 @@
 -- LEAVES STATE: beers_embedding_hnsw index EXISTS
 -- ============================================================
 
+\pset pager off
+
 \echo ''
 \echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
 \echo '  03 · HNSW index — approximate nearest-neighbour search'

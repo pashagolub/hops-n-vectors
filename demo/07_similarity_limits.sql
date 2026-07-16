@@ -17,6 +17,8 @@
 -- READ-ONLY — no DDL, no DML
 -- ============================================================
 
+\pset pager off
+
 \echo ''
 \echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
 \echo '  07 · Semantic similarity pitfalls'

@@ -19,6 +19,13 @@
 -- real-world tables the ANN index IS the chosen plan and this pitfall
 -- bites without any coaxing.
 
+\pset pager off
+
+\echo ''
+\echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+\echo '  05 · Filtering pitfalls'
+\echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+
 \echo '=== Reference beer (query vector source) ==='
 SELECT id, beer_name, style, abv FROM beers WHERE id = 1;
 

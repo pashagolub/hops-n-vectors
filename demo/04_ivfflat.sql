@@ -13,6 +13,8 @@
 -- LEAVES STATE: beers_embedding_hnsw EXISTS, beers_embedding_ivfflat ABSENT
 -- ============================================================
 
+\pset pager off
+
 \echo ''
 \echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
 \echo '  04 · IVFFlat index — cluster-based ANN'
