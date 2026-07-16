@@ -30,8 +30,8 @@ EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
 SELECT
     beer_name,
     style,
-    round((embedding <=> (SELECT embedding FROM beers WHERE id = 807))::numeric, 4) AS cosine_dist
+    round((embedding <=> (SELECT embedding FROM beers WHERE id = 10462))::numeric, 4) AS cosine_dist
 FROM beers
-WHERE id <> 807
-ORDER BY embedding <=> (SELECT embedding FROM beers WHERE id = 807)
+WHERE id <> 10462
+ORDER BY embedding <=> (SELECT embedding FROM beers WHERE id = 10462)
 LIMIT 5;

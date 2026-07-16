@@ -1,12 +1,12 @@
 -- ============================================================
 -- GUD-003 | 04_ivfflat.sql
 -- DEMONSTRATES: IVFFlat index — inverted-file flat clustering ANN
---   lists = 57  (rule of thumb: ≈ sqrt(3197 rows) ≈ 57)
---   probes = N  controls how many clusters are searched at query time
+--   lists = 112  (rule of thumb: ≈ sqrt(12656 rows) ≈ 112)
+--   probes = N   controls how many clusters are searched at query time
 -- EXPECTED OBSERVATIONS:
 --   * "Index Scan using beers_embedding_ivfflat"
 --   * probes=1  → fastest, lowest recall (only 1 cluster searched)
---   * probes=10 → better recall, slightly slower
+--   * probes=11 → better recall, slightly slower
 --   * HNSW generally beats IVFFlat on both recall and speed at
 --     this dataset size; IVFFlat shines for very large corpora
 --     where HNSW memory use becomes prohibitive
@@ -26,11 +26,11 @@
 DROP INDEX IF EXISTS beers_embedding_hnsw;
 
 \echo ''
-\echo '── Step 2: create IVFFlat (lists=57, ≈ sqrt(3197)) ──'
+\echo '── Step 2: create IVFFlat (lists=112, ≈ sqrt(12656)) ──'
 
 CREATE INDEX beers_embedding_ivfflat
     ON beers USING ivfflat (embedding vector_cosine_ops)
-    WITH (lists = 57);
+    WITH (lists = 112);
 
 \echo ''
 \echo '── Step 3: EXPLAIN ANALYZE — IVFFlat, probes=1 (default) ──'
@@ -40,25 +40,25 @@ EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
 SELECT
     beer_name,
     style,
-    round((embedding <=> (SELECT embedding FROM beers WHERE id = 807))::numeric, 4) AS cosine_dist
+    round((embedding <=> (SELECT embedding FROM beers WHERE id = 10462))::numeric, 4) AS cosine_dist
 FROM beers
-WHERE id <> 807
-ORDER BY embedding <=> (SELECT embedding FROM beers WHERE id = 807)
+WHERE id <> 10462
+ORDER BY embedding <=> (SELECT embedding FROM beers WHERE id = 10462)
 LIMIT 5;
 
 \echo ''
 \echo '── Step 4: raise probes → more clusters → better recall ──'
 
-SET ivfflat.probes = 10;
+SET ivfflat.probes = 11;
 
 EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
 SELECT
     beer_name,
     style,
-    round((embedding <=> (SELECT embedding FROM beers WHERE id = 807))::numeric, 4) AS cosine_dist
+    round((embedding <=> (SELECT embedding FROM beers WHERE id = 10462))::numeric, 4) AS cosine_dist
 FROM beers
-WHERE id <> 807
-ORDER BY embedding <=> (SELECT embedding FROM beers WHERE id = 807)
+WHERE id <> 10462
+ORDER BY embedding <=> (SELECT embedding FROM beers WHERE id = 10462)
 LIMIT 5;
 
 RESET ivfflat.probes;
