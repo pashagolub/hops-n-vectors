@@ -27,6 +27,7 @@ services:
   scheduler:
     build:
       context: ./app
+    image: hops-n-vectors-scheduler:latest
     restart: unless-stopped
     environment:
       POSTGRES_HOST: postgres
@@ -40,7 +41,7 @@ services:
     volumes:
       - ./data:/data:ro
       - ./init:/app/init:ro
-      - model-cache:/model-cache
+      - ${MODEL_CACHE_PATH:-model-cache}:/model-cache
     depends_on:
       postgres:
         condition: service_healthy

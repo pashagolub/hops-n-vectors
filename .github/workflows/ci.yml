@@ -88,11 +88,56 @@ jobs:
       github.event_name == 'schedule' ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.run_e2e == 'true')
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+
+      # ── Docker layer cache ──────────────────────────────────────────────
+      # Pre-build the scheduler image using GHA cache so that torch +
+      # sentence-transformers wheels are not re-downloaded on every run.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build scheduler image (GHA layer cache)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./app
+          load: true
+          tags: hops-n-vectors-scheduler:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ── HuggingFace model cache ─────────────────────────────────────────
+      # Cache the ~90 MB model weights so the scheduler container starts
+      # without a network download.  MODEL_CACHE_PATH is a bind-mount path
+      # that docker-compose substitutes for the named model-cache volume;
+      # because it is a bind mount, `docker compose down -v` does not wipe it.
+      - name: Restore HuggingFace model cache
+        id: hf-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/hf-cache
+          key: hf-all-MiniLM-L12-v2-v1
+
+      - name: Pre-download HuggingFace model (cache miss only)
+        if: steps.hf-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p /tmp/hf-cache
+          docker run --rm \
+            -v /tmp/hf-cache:/model-cache \
+            -e HF_HOME=/model-cache \
+            hops-n-vectors-scheduler:latest \
+            python -c "
+          from sentence_transformers import SentenceTransformer
+          SentenceTransformer('all-MiniLM-L12-v2')
+          print('Model pre-downloaded.')
+          "
+
       - name: Copy env file
         run: cp .env.example .env 2>/dev/null || cp .env .env || true
+
       - name: Run E2E script
+        env:
+          MODEL_CACHE_PATH: /tmp/hf-cache
         run: bash scripts/e2e.sh
 
