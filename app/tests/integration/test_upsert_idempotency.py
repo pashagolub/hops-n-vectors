@@ -25,14 +25,10 @@ pytestmark = pytest.mark.integration
 
 
 def _write_csv(rows: list[dict], path: Path) -> Path:
-    """Write a minimal valid beer CSV to *path*."""
+    """Write a minimal valid beer CSV (Wikiliq format) to *path*."""
     cols = [
-        "Name", "Style", "Brewery", "Beer Name (Full)", "Description",
-        "ABV", "Min IBU", "Max IBU",
-        "Astringency", "Body", "Alcohol", "Bitter", "Sweet", "Sour", "Salty",
-        "Fruits", "Hoppy", "Spices", "Malty",
-        "review_aroma", "review_appearance", "review_palate",
-        "review_taste", "review_overall", "number_of_reviews",
+        "Name", "Country", "Brand", "Categories", "Tasting Notes",
+        "ABV", "IBU", "Food Pairing", "Rating", "Rate Count", "Description",
     ]
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="", encoding="utf-8") as fh:
@@ -42,17 +38,12 @@ def _write_csv(rows: list[dict], path: Path) -> Path:
     return path
 
 
-def _beer(name="Alpha", brewery="Acme", style="IPA", desc="Hoppy") -> dict:
+def _beer(name="Alpha", brewery="Acme", style="ALE, IPA", desc="Hoppy") -> dict:
     return {
-        "Name": name, "Style": style, "Brewery": brewery,
-        "Beer Name (Full)": f"{brewery} {name}",
-        "Description": desc, "ABV": "6.0", "Min IBU": "40", "Max IBU": "60",
-        "Astringency": "5", "Body": "20", "Alcohol": "10",
-        "Bitter": "60", "Sweet": "20", "Sour": "5", "Salty": "0",
-        "Fruits": "10", "Hoppy": "70", "Spices": "5", "Malty": "15",
-        "review_aroma": "3.5", "review_appearance": "3.8",
-        "review_palate": "3.6", "review_taste": "3.7",
-        "review_overall": "3.8", "number_of_reviews": "100",
+        "Name": name, "Country": "United States", "Brand": brewery,
+        "Categories": style, "Tasting Notes": "Hoppy, Citrus",
+        "ABV": "6%", "IBU": "45", "Food Pairing": "Cheese - Hard Aged",
+        "Rating": "4.2", "Rate Count": "100", "Description": desc,
     }
 
 

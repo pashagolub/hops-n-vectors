@@ -1,7 +1,25 @@
-"""Validate and idempotently load the bundled dataset CSV into the beers table."""
+"""Validate and idempotently load the bundled dataset CSV into the beers table.
+
+The bundled dataset is the Wikiliq beer snapshot (``beer_data.csv``).  Its
+columns differ from the original Beer Profile and Ratings dataset, so this
+module maps them onto the unchanged ``beers`` schema:
+
+    Name        -> beer_name
+    Brand       -> brewery
+    Categories  -> style
+    ABV ("8%")  -> abv
+    IBU         -> min_ibu / max_ibu
+    Rating      -> review_overall
+    Rate Count  -> number_of_reviews
+
+Description, Tasting Notes, Food Pairing, and Country are folded into the
+composed ``info`` text (the embedding source).  The numeric taste-profile
+columns of the old dataset have no equivalent and are stored as NULL.
+"""
 from __future__ import annotations
 
 import csv
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -10,23 +28,22 @@ from hopsnvectors.textcompose import compose_info
 from hopsnvectors.textcompose import text_hash as make_hash
 
 # Default CSV path when running as a container (data/ is bind-mounted read-only).
-_DEFAULT_CSV = Path("/data/beer_profile_and_ratings.csv")
+_DEFAULT_CSV = Path("/data/beer_data.csv")
 
 # Provenance metadata written to dataset_meta on every load.
-_SOURCE_URL = (
-    "https://www.kaggle.com/datasets/ruthgn/beer-profile-and-ratings-data-set"
-)
-_LICENSE = "CC BY 4.0"
-_SNAPSHOT_VERSION = "2024-01"
+_SOURCE_URL = "https://www.kaggle.com/datasets/limtis/wikiliq-dataset"
+_LICENSE = "CC0 1.0 (Public Domain)"
+_SNAPSHOT_VERSION = "2022-05"
 
 REQUIRED_COLUMNS = frozenset({
-    "Name", "Style", "Brewery", "Beer Name (Full)", "Description",
-    "ABV", "Min IBU", "Max IBU",
-    "Astringency", "Body", "Alcohol", "Bitter", "Sweet", "Sour", "Salty",
-    "Fruits", "Hoppy", "Spices", "Malty",
-    "review_aroma", "review_appearance", "review_palate", "review_taste",
-    "review_overall", "number_of_reviews",
+    "Name", "Country", "Brand", "Categories", "Tasting Notes",
+    "ABV", "IBU", "Food Pairing", "Rating", "Rate Count", "Description",
 })
+
+# Keg/barrel SKUs are shop artefacts (duplicate the beer with shipping
+# boilerplate); they are skipped at read time.
+_KEG_NAME_RE = re.compile(r"(?:\d\s*/\s*\d|[½¼⅙])\s*(?:barrel|keg)", re.IGNORECASE)
+_KEG_BOILERPLATE = "Kegs are intended for Kegerator use"
 
 # --------------------------------------------------------------------------- #
 # Internal helpers
@@ -37,21 +54,9 @@ def _norm(value: str | None) -> str:
     return (value or "").lstrip("\ufeff").strip()
 
 
-def _clean_name(name: str, brewery: str) -> str:
-    """Strip a brewery string erroneously appended to the beer name.
-
-    Some source rows have the brewery concatenated onto the end of the Name
-    column with no separator, e.g. Name="Zywiec BeerZywiec Breweries PLC
-    (Heineken)" while Brewery="Zywiec Breweries PLC (Heineken)".  When the name
-    ends with the (non-empty) brewery and is longer than it, drop the suffix.
-    """
-    if brewery and name != brewery and name.endswith(brewery):
-        return name[: -len(brewery)].strip()
-    return name
-
-
 def _to_float(value: str) -> float | None:
-    v = _norm(value)
+    """Parse a float, tolerating '%' / '$' decorations ("8%" -> 8.0)."""
+    v = _norm(value).rstrip("%").lstrip("$").replace(",", "")
     try:
         return float(v) if v else None
     except ValueError:
@@ -66,6 +71,13 @@ def _to_int(value: str) -> int | None:
         return None
 
 
+def _is_keg_row(row: dict) -> bool:
+    """Return True for keg/barrel shop SKUs that duplicate a beer entry."""
+    if _KEG_NAME_RE.search(row.get("Name", "")):
+        return True
+    return _KEG_BOILERPLATE in row.get("Description", "")
+
+
 def _is_lfs_pointer(path: Path) -> bool:
     """Return True if the file looks like a Git-LFS pointer (not real data)."""
     try:
@@ -75,10 +87,11 @@ def _is_lfs_pointer(path: Path) -> bool:
         return False
 
 
-def _read_and_deduplicate(path: Path) -> tuple[list[dict], int]:
+def _read_and_deduplicate(path: Path) -> tuple[list[dict], int, int]:
     """Parse the CSV, normalise headers, and deduplicate on the natural key.
 
-    Returns ``(unique_rows, duplicate_count)``.
+    Returns ``(unique_rows, duplicate_count, skipped_count)`` where skipped
+    rows are keg/barrel shop SKUs and rows without a beer name.
     Aborts via ``SystemExit`` if required columns are missing (SEC-002).
     """
     with path.open(encoding="utf-8-sig") as fh:
@@ -97,53 +110,74 @@ def _read_and_deduplicate(path: Path) -> tuple[list[dict], int]:
 
         seen: dict[tuple[str, str, str], dict] = {}
         duplicates = 0
+        skipped = 0
         for raw in reader:
             row = {_norm(k): _norm(v) for k, v in raw.items() if k is not None}
-            row["Name"] = _clean_name(row["Name"], row["Brewery"])
-            key = (row["Name"], row["Brewery"], row["Style"])
+            if not row.get("Name") or _is_keg_row(row):
+                skipped += 1
+                continue
+            key = (row["Name"], row["Brand"], row["Categories"])
             if key in seen:
                 duplicates += 1
             else:
                 seen[key] = row
 
-    return list(seen.values()), duplicates
+    return list(seen.values()), duplicates, skipped
+
+
+def _compose_description(row: dict) -> str:
+    """Fold Description, Tasting Notes, Food Pairing, and Country into prose.
+
+    The old dataset carried numeric taste columns; the Wikiliq dataset has
+    free-text equivalents instead, so they are appended to the description
+    that feeds the composed ``info`` embedding text.
+    """
+    parts: list[str] = []
+    desc = row.get("Description", "")
+    if desc:
+        parts.append(desc)
+    notes = row.get("Tasting Notes", "")
+    if notes:
+        parts.append(f"Tasting notes: {notes}.")
+    pairing = row.get("Food Pairing", "")
+    if pairing:
+        parts.append(f"Pairs well with: {pairing}.")
+    country = row.get("Country", "")
+    if country:
+        parts.append(f"Brewed in {country}.")
+    return " ".join(parts)
+
+
+# The numeric taste-profile columns of the old dataset have no equivalent in
+# the Wikiliq snapshot; they are kept in the schema and stored as NULL.
+_NULL_TASTE: dict[str, None] = dict.fromkeys((
+    "astringency", "body", "alcohol", "bitter", "sweet", "sour", "salty",
+    "fruits", "hoppy", "spices", "malty",
+))
 
 
 def _build_params(row: dict) -> dict:
     """Map a normalised CSV row dict to the SQL upsert parameter dict."""
-    taste: dict[str, int | None] = {
-        "astringency": _to_int(row.get("Astringency", "")),
-        "body":        _to_int(row.get("Body", "")),
-        "alcohol":     _to_int(row.get("Alcohol", "")),
-        "bitter":      _to_int(row.get("Bitter", "")),
-        "sweet":       _to_int(row.get("Sweet", "")),
-        "sour":        _to_int(row.get("Sour", "")),
-        "salty":       _to_int(row.get("Salty", "")),
-        "fruits":      _to_int(row.get("Fruits", "")),
-        "hoppy":       _to_int(row.get("Hoppy", "")),
-        "spices":      _to_int(row.get("Spices", "")),
-        "malty":       _to_int(row.get("Malty", "")),
-    }
+    ibu = _to_int(row.get("IBU", ""))
     info = compose_info(
         beer_name=row["Name"],
-        style=row.get("Style"),
-        description=row.get("Description"),
-        taste=taste,
+        style=row.get("Categories"),
+        description=_compose_description(row),
     )
     return {
         "beer_name":          row["Name"],
-        "brewery":            row.get("Brewery") or None,
-        "style":              row.get("Style") or None,
+        "brewery":            row.get("Brand") or None,
+        "style":              row.get("Categories") or None,
         "abv":                _to_float(row.get("ABV", "")),
-        "min_ibu":            _to_int(row.get("Min IBU", "")),
-        "max_ibu":            _to_int(row.get("Max IBU", "")),
-        **taste,
-        "review_aroma":       _to_float(row.get("review_aroma", "")),
-        "review_appearance":  _to_float(row.get("review_appearance", "")),
-        "review_palate":      _to_float(row.get("review_palate", "")),
-        "review_taste":       _to_float(row.get("review_taste", "")),
-        "review_overall":     _to_float(row.get("review_overall", "")),
-        "number_of_reviews":  _to_int(row.get("number_of_reviews", "")),
+        "min_ibu":            ibu,
+        "max_ibu":            ibu,
+        **_NULL_TASTE,
+        "review_aroma":       None,
+        "review_appearance":  None,
+        "review_palate":      None,
+        "review_taste":       None,
+        "review_overall":     _to_float(row.get("Rating", "")),
+        "number_of_reviews":  _to_int(row.get("Rate Count", "")),
         "info":               info,
         "text_hash":          make_hash(info),
     }
@@ -215,9 +249,11 @@ def load(csv_path: Path = _DEFAULT_CSV) -> None:
         )
 
     print(f"Reading {csv_path} …", flush=True)
-    rows, duplicates = _read_and_deduplicate(csv_path)
+    rows, duplicates, skipped = _read_and_deduplicate(csv_path)
     total = len(rows)
 
+    if skipped:
+        print(f"  {skipped} row(s) skipped (keg/barrel SKUs or missing name).")
     if duplicates:
         print(f"  {duplicates} duplicate row(s) removed (natural-key deduplication).")
     print(f"  {total} unique beer(s) to load.", flush=True)

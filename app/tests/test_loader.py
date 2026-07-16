@@ -36,30 +36,16 @@ def _make_csv(
 def _default_row(**overrides) -> dict:
     base: dict = {
         "Name": "Test Beer",
-        "Style": "IPA",
-        "Brewery": "Test Brewery",
-        "Beer Name (Full)": "Test Brewery Test Beer",
+        "Country": "United States",
+        "Brand": "Test Brewery",
+        "Categories": "ALE, IPA",
+        "Tasting Notes": "Hoppy, Citrus",
+        "ABV": "6%",
+        "IBU": "45",
+        "Food Pairing": "Cheese - Hard Aged",
+        "Rating": "4.2",
+        "Rate Count": "100",
         "Description": "Hoppy and bitter",
-        "ABV": "6.0",
-        "Min IBU": "40",
-        "Max IBU": "60",
-        "Astringency": "10",
-        "Body": "20",
-        "Alcohol": "15",
-        "Bitter": "70",
-        "Sweet": "30",
-        "Sour": "5",
-        "Salty": "0",
-        "Fruits": "10",
-        "Hoppy": "80",
-        "Spices": "5",
-        "Malty": "20",
-        "review_aroma": "3.5",
-        "review_appearance": "3.8",
-        "review_palate": "3.6",
-        "review_taste": "3.7",
-        "review_overall": "3.8",
-        "number_of_reviews": "100",
     }
     base.update(overrides)
     return base
@@ -99,15 +85,16 @@ def test_missing_column_raises_system_exit(tmp_path):
 
 def test_good_csv_loads_without_error(tmp_path):
     path = _make_csv([_default_row()], tmp_path)
-    rows, dupes = _read_and_deduplicate(path)
+    rows, dupes, skipped = _read_and_deduplicate(path)
     assert len(rows) == 1
     assert dupes == 0
+    assert skipped == 0
 
 
 def test_utf8_bom_header_accepted(tmp_path):
     """CSV with UTF-8 BOM on the first header field must still validate."""
     path = _make_csv([_default_row()], tmp_path, encoding="utf-8-sig")
-    rows, _ = _read_and_deduplicate(path)
+    rows, _, _ = _read_and_deduplicate(path)
     assert len(rows) == 1
 
 
@@ -116,30 +103,57 @@ def test_utf8_bom_header_accepted(tmp_path):
 # ---------------------------------------------------------------------------
 
 def test_duplicates_are_counted_and_removed(tmp_path):
-    row1 = _default_row(Name="Amber", Brewery="A", Style="Altbier")
-    row2 = _default_row(Name="Amber", Brewery="A", Style="Altbier", Description="dup")
+    row1 = _default_row(Name="Amber", Brand="A", Categories="Altbier")
+    row2 = _default_row(Name="Amber", Brand="A", Categories="Altbier", Description="dup")
     path = _make_csv([row1, row2], tmp_path)
-    rows, dupes = _read_and_deduplicate(path)
+    rows, dupes, _ = _read_and_deduplicate(path)
     assert len(rows) == 1
     assert dupes == 1
 
 
 def test_different_breweries_not_deduplicated(tmp_path):
-    row1 = _default_row(Name="Amber", Brewery="Brewery A")
-    row2 = _default_row(Name="Amber", Brewery="Brewery B")
+    row1 = _default_row(Name="Amber", Brand="Brewery A")
+    row2 = _default_row(Name="Amber", Brand="Brewery B")
     path = _make_csv([row1, row2], tmp_path)
-    rows, dupes = _read_and_deduplicate(path)
+    rows, dupes, _ = _read_and_deduplicate(path)
     assert len(rows) == 2
     assert dupes == 0
 
 
 def test_different_styles_not_deduplicated(tmp_path):
-    row1 = _default_row(Name="Lager", Style="American Lager")
-    row2 = _default_row(Name="Lager", Style="German Lager")
+    row1 = _default_row(Name="Lager", Categories="American Lager")
+    row2 = _default_row(Name="Lager", Categories="German Lager")
     path = _make_csv([row1, row2], tmp_path)
-    rows, dupes = _read_and_deduplicate(path)
+    rows, dupes, _ = _read_and_deduplicate(path)
     assert len(rows) == 2
     assert dupes == 0
+
+
+# ---------------------------------------------------------------------------
+# Keg/barrel SKU filtering
+# ---------------------------------------------------------------------------
+
+def test_keg_rows_are_skipped(tmp_path):
+    rows_in = [
+        _default_row(),
+        _default_row(Name="Test Beer 1/6 Barrel"),
+        _default_row(Name="Test Beer \u2159 Barrel"),
+        _default_row(
+            Name="Other Beer Keggy",
+            Description="Kegs are intended for Kegerator use only. TAP NOT INCLUDED.",
+        ),
+    ]
+    path = _make_csv(rows_in, tmp_path)
+    rows, _, skipped = _read_and_deduplicate(path)
+    assert len(rows) == 1
+    assert skipped == 3
+
+
+def test_rows_without_name_are_skipped(tmp_path):
+    path = _make_csv([_default_row(Name="")], tmp_path)
+    rows, _, skipped = _read_and_deduplicate(path)
+    assert len(rows) == 0
+    assert skipped == 1
 
 
 # ---------------------------------------------------------------------------
@@ -148,7 +162,7 @@ def test_different_styles_not_deduplicated(tmp_path):
 
 def test_non_ascii_beer_name_preserved(tmp_path):
     path = _make_csv([_default_row(Name="K\u00f6stritzer Schwarzbier")], tmp_path)
-    rows, _ = _read_and_deduplicate(path)
+    rows, _, _ = _read_and_deduplicate(path)
     assert rows[0]["Name"] == "K\u00f6stritzer Schwarzbier"
 
 
@@ -158,8 +172,33 @@ def test_non_ascii_beer_name_preserved(tmp_path):
 
 def test_empty_description_row_is_accepted(tmp_path):
     path = _make_csv([_default_row(Description="")], tmp_path)
-    rows, _ = _read_and_deduplicate(path)
+    rows, _, _ = _read_and_deduplicate(path)
     assert len(rows) == 1
+
+
+# ---------------------------------------------------------------------------
+# Value parsing (percent-decorated ABV, ratings)
+# ---------------------------------------------------------------------------
+
+def test_percent_abv_parsed():
+    from hopsnvectors.loader import _build_params
+    params = _build_params(_default_row(ABV="8.5%"))
+    assert params["abv"] == 8.5
+
+
+def test_rating_and_rate_count_mapped():
+    from hopsnvectors.loader import _build_params
+    params = _build_params(_default_row(Rating="4.7", **{"Rate Count": "17"}))
+    assert params["review_overall"] == 4.7
+    assert params["number_of_reviews"] == 17
+
+
+def test_info_includes_tasting_notes_and_country():
+    from hopsnvectors.loader import _build_params
+    params = _build_params(_default_row())
+    assert "Hoppy, Citrus" in params["info"]
+    assert "United States" in params["info"]
+    assert "Test Beer" in params["info"]
 
 
 # ---------------------------------------------------------------------------
