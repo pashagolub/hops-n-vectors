@@ -15,6 +15,8 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
+import textwrap
 from dataclasses import dataclass
 
 _MAX_PROMPT_LEN = 4_000
@@ -31,9 +33,10 @@ Type :help for commands.
 _HELP = """\
 Commands:
   <free text>   search beers similar to your prompt (e.g. "lemon")
-  :like <id>    more beers like beer <id>
+  :like <id>    more beers like beer <id>  (id shown in results as [id=NNN])
   :top <n>      set result count (1-50)
   :explain      toggle EXPLAIN ANALYZE output
+  :cls / :clear clear the screen (also Ctrl-L)
   :help         this help
   :quit         exit (also Ctrl-D)
 """
@@ -99,6 +102,8 @@ def parse_command(line: str) -> Command:
         return Command(action="explain")
     if cmd == ":help":
         return Command(action="help")
+    if cmd in (":cls", ":clear"):
+        return Command(action="cls")
     if cmd in (":quit", ":exit", ":q"):
         return Command(action="quit")
     return Command(error=f"Unknown command {cmd}.  Type :help for help.")
@@ -168,17 +173,43 @@ def _print_results(rows: list[dict]) -> None:
     if not rows:
         print("No results.")
         return
+    width = shutil.get_terminal_size(fallback=(80, 24)).columns
+    indent = "     "  # 5 spaces — aligns under the name after "  N. "
     for i, r in enumerate(rows, 1):
-        print(
-            f"{i:3d}. {r['beer_name']:<30.30s} ({_truncate(r['style'], 20)})"
-            f"  d={r['distance']:.3f}  \"{_truncate(r['info'])}\""
-        )
+        name = r["beer_name"] or ""
+        style = r["style"] or ""
+        dist = r["distance"]
+        beer_id = r["id"]
+        # Header line: "  N. Beer Name  (Style)  d=X.XXX  [id=NNN]"
+        header = f"{i:3d}. {name}  ({style})  d={dist:.3f}  [id={beer_id}]"
+        if len(header) > width:
+            # Shrink style first, then name
+            budget = width - len(f"{i:3d}. {'':1s}  ()  d={dist:.3f}  [id={beer_id}]")
+            half = budget // 2
+            name = _truncate(name, half)
+            style = _truncate(style, budget - len(name))
+            header = f"{i:3d}. {name}  ({style})  d={dist:.3f}  [id={beer_id}]"
+        print(header)
+        # Info: full text word-wrapped to terminal width
+        info_text = (r.get("info") or "").replace("\n", " ").strip()
+        if info_text:
+            for line in textwrap.wrap(info_text, width=max(20, width - len(indent))):
+                print(f"{indent}{line}")
+
+
+def _clear_screen() -> None:
+    print("\033[2J\033[H", end="", flush=True)
 
 
 def repl(searcher: Searcher | None = None) -> None:
     searcher = searcher or Searcher()
     top = _DEFAULT_TOP
     explain = False
+    try:
+        import readline  # noqa: PLC0415
+        readline.parse_and_bind("\\C-l: clear-screen")
+    except ImportError:
+        pass
     print(_BANNER)
 
     while True:
@@ -196,6 +227,9 @@ def repl(searcher: Searcher | None = None) -> None:
             break
         if cmd.action == "help":
             print(_HELP)
+            continue
+        if cmd.action == "cls":
+            _clear_screen()
             continue
         if cmd.action == "explain":
             explain = not explain
