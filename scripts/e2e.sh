@@ -44,6 +44,7 @@ fail() { echo "  ❌ $*"; ((FAIL++)) || true; }
 
 section() { echo; echo "── $* ──"; }
 
+# shellcheck disable=SC2317  # called indirectly via trap
 teardown() {
     if [[ $KEEP_STACK -eq 0 ]]; then
         echo
