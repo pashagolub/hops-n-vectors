@@ -243,6 +243,7 @@ def test_print_results_empty(capsys):
 
 def test_print_results_single_row(capsys):
     row = {
+        "id": 42,
         "beer_name": "Lemon Wheat",
         "style": "Wheat",
         "distance": 0.123,
@@ -252,3 +253,4 @@ def test_print_results_single_row(capsys):
     out = capsys.readouterr().out
     assert "Lemon Wheat" in out
     assert "0.123" in out
+    assert "id=42" in out

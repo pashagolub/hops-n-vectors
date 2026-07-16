@@ -39,6 +39,15 @@ def _load_model():
     loaded (e.g. cold cache with no network access, edge case 10).
     """
     os.environ.setdefault("HF_HOME", "/model-cache")
+    # If the model is already cached locally, go fully offline to avoid the
+    # unauthenticated-request warning from HF Hub on every TUI start.
+    hf_home = os.environ["HF_HOME"]
+    cache_dir = os.path.join(
+        hf_home, "hub", f"models--sentence-transformers--{_MODEL_NAME}"
+    )
+    if os.path.isdir(cache_dir):
+        os.environ.setdefault("HF_HUB_OFFLINE", "1")
+    os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
     try:
         from sentence_transformers import SentenceTransformer  # noqa: PLC0415
         return SentenceTransformer(_MODEL_NAME)

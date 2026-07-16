@@ -18,6 +18,9 @@ case "${1:-}" in
         shift
         exec python -m "hopsnvectors.$tool" "$@"
         ;;
+    python|pytest)
+        exec "$@"
+        ;;
 esac
 
 echo "scheduler | stage 1/3: loading dataset ..."

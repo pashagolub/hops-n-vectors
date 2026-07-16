@@ -15,11 +15,12 @@ RUN pip install --no-cache-dir \
         --index-url https://download.pytorch.org/whl/cpu
 
 COPY pyproject.toml .
-RUN pip install --no-cache-dir .
+RUN pip install --no-cache-dir ".[dev]"
 
 COPY --from=timetable /pg_timetable /usr/local/bin/pg_timetable
 
 COPY hopsnvectors/ hopsnvectors/
+COPY tests/ tests/
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
