@@ -190,6 +190,10 @@ def _print_results(rows: list[dict]) -> None:
             style = _truncate(style, budget - len(name))
             header = f"{i:3d}. {name}  ({style})  d={dist:.3f}  [id={beer_id}]"
         print(header)
+        # Brewery line, indented under the name
+        brewery = (r.get("brewery") or "").strip()
+        if brewery:
+            print(f"{indent}by {_truncate(brewery, max(20, width - len(indent) - 3))}")
         # Info: full text word-wrapped to terminal width
         info_text = (r.get("info") or "").replace("\n", " ").strip()
         if info_text:

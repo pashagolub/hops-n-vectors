@@ -129,7 +129,7 @@ docker compose run --rm scheduler tui
 docker compose exec postgres psql -U beer -d beer   # or: make psql
 ```
 
-Then `\i demo/NN_name.sql`, or run all at once with `make demo`.
+Then `\i /demo/NN_name.sql`, or run all at once with `make demo`.
 
 | Script | What to say |
 |---|---|
@@ -259,10 +259,11 @@ Scripts in `demo/` are numbered and self-describing. Run them in order inside
 make demo          # runs 01 through 07 in sequence
 ```
 
-Individual execution:
+Individual execution (the `demo/` folder is mounted read-only at `/demo`
+inside the postgres container):
 
 ```sql
-\i demo/01_operators.sql
+\i /demo/01_operators.sql
 ```
 
 See [Presenter's script §3](#step-3--demo-scripts-in-psql-run-in-numbered-order)

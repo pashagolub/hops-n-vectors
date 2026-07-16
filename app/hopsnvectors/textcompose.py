@@ -3,20 +3,48 @@ from __future__ import annotations
 
 import hashlib
 
-# Taste attribute column names (as stored in DB) and their display labels.
-_TASTE_LABELS: list[tuple[str, str]] = [
-    ("astringency", "Astringency"),
-    ("body", "Body"),
-    ("alcohol", "Alcohol"),
-    ("bitter", "Bitter"),
-    ("sweet", "Sweet"),
-    ("sour", "Sour"),
-    ("salty", "Salty"),
-    ("fruits", "Fruits"),
-    ("hoppy", "Hoppy"),
-    ("spices", "Spices"),
-    ("malty", "Malty"),
+# Maps a taste attribute to a natural-language adjective used when that
+# attribute is the dominant characteristic of the beer (highest score).
+# Attributes absent from this map are not promoted to adjectives.
+_TASTE_ADJECTIVES: dict[str, str] = {
+    "bitter":      "bitter",
+    "sweet":       "sweet",
+    "sour":        "sour",
+    "salty":       "salty",
+    "hoppy":       "hoppy",
+    "malty":       "malty",
+    "fruits":      "fruity",
+    "spices":      "spiced",
+    "alcohol":     "strong",
+    "body":        "full-bodied",
+    "astringency": "astringent",
+}
+
+# Attributes that contribute to the natural-language taste summary.
+# Listed in order of semantic importance for the embedding.
+_TASTE_KEYS: list[str] = [
+    "hoppy", "bitter", "malty", "sweet", "sour", "fruits",
+    "spices", "salty", "alcohol", "body", "astringency",
 ]
+
+# Minimum score for an attribute to be considered "prominent".
+_TASTE_THRESHOLD = 40
+
+
+def _taste_summary(taste: dict[str, int | None]) -> str:
+    """Return a short natural-language phrase for dominant taste attributes.
+
+    Only attributes with a score above the threshold are included.  Returns
+    an empty string when no attribute clears the threshold.
+    """
+    adjectives = [
+        _TASTE_ADJECTIVES[k]
+        for k in _TASTE_KEYS
+        if (taste.get(k) or 0) >= _TASTE_THRESHOLD and k in _TASTE_ADJECTIVES
+    ]
+    if not adjectives:
+        return ""
+    return "Taste: " + ", ".join(adjectives) + "."
 
 
 def compose_info(
@@ -27,10 +55,11 @@ def compose_info(
 ) -> str:
     """Build the descriptive text used as the embedding source.
 
-    Combines name, style, description/notes, and non-zero taste attributes
-    into human-readable prose.  Empty or None inputs are silently skipped so
-    that sparse rows still produce valid text.  Returns an empty string only
-    when *all* inputs are absent or empty.
+    Combines name, style, description/notes, and dominant taste adjectives
+    into human-readable prose.  Raw numeric scores are intentionally excluded
+    — they are noise to the embedding model.  Empty or None inputs are
+    silently skipped so that sparse rows still produce valid text.  Returns
+    an empty string only when *all* inputs are absent or empty.
     """
     parts: list[str] = []
     taste = taste or {}
@@ -47,13 +76,9 @@ def compose_info(
     if desc:
         parts.append(desc)
 
-    taste_parts = [
-        f"{label} {taste.get(key) or 0}"
-        for key, label in _TASTE_LABELS
-        if (taste.get(key) or 0) > 0
-    ]
-    if taste_parts:
-        parts.append("Taste profile \u2014 " + ", ".join(taste_parts) + ".")
+    summary = _taste_summary(taste)
+    if summary:
+        parts.append(summary)
 
     return " ".join(parts)
 

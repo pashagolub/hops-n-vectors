@@ -19,6 +19,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql
       - ./init:/docker-entrypoint-initdb.d:ro
+      - ./demo:/demo:ro
 
   # Single tools container (spec v1.2 §4.1): entrypoint runs
   # loader -> embedder -> exec pg_timetable.  The rebuild_embeddings job is a

@@ -176,5 +176,16 @@ if __name__ == "__main__":
         action="store_true",
         help="Embed all pending rows and exit (used by Phase 5 scheduler).",
     )
-    parser.parse_args()
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Clear all existing embeddings and re-embed every row from scratch.",
+    )
+    args = parser.parse_args()
+    if args.force:
+        conn = get_connection(autocommit=True)
+        with conn.cursor() as cur:
+            cur.execute("UPDATE beers SET embedding = NULL, embedded_at = NULL")
+            print(f"Cleared embeddings for {cur.rowcount} rows.", flush=True)
+        conn.close()
     main()

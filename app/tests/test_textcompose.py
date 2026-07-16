@@ -13,15 +13,21 @@ def test_compose_includes_name_style_description():
     assert "Dark and roasty" in info
 
 
-def test_compose_includes_nonzero_taste_attributes():
+def test_compose_includes_dominant_taste_adjectives():
     info = compose_info("IPA", taste={"hoppy": 90, "bitter": 80})
-    assert "Hoppy 90" in info
-    assert "Bitter 80" in info
+    assert "hoppy" in info
+    assert "bitter" in info
+
+
+def test_compose_skips_below_threshold_taste_attributes():
+    # Scores below 40 should not appear in the taste summary.
+    info = compose_info("Lager", taste={"hoppy": 10, "bitter": 5, "sweet": None})
+    assert "Taste:" not in info
 
 
 def test_compose_skips_zero_taste_attributes():
     info = compose_info("Lager", taste={"hoppy": 0, "bitter": 0, "sweet": None})
-    assert "Taste profile" not in info
+    assert "Taste:" not in info
 
 
 def test_compose_empty_description_is_skipped():
@@ -48,9 +54,10 @@ def test_compose_non_ascii_name():
     assert "K\u00f6stritzer" in info
 
 
-def test_compose_taste_profile_label_present():
+def test_compose_taste_adjective_present():
     info = compose_info("Stout", taste={"malty": 100})
-    assert "Taste profile" in info
+    assert "malty" in info
+    assert "Taste:" in info
 
 
 # ---------------------------------------------------------------------------
