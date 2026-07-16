@@ -8,14 +8,15 @@
 --
 -- EXPECTED OBSERVATIONS
 --   1. Exact query (seq scan): 10 strong beers (abv > 12), correct answer.
---   2. Same query through the HNSW index: 0 rows!  The index hands back
---      hnsw.ef_search = 40 nearest candidates; none of them survives the
---      abv > 12 filter, and the scan stops there.
+--      Only 190 of 12,656 rows (~1.5%) pass the filter — very selective.
+--   2. Same query through the HNSW index: far fewer rows!  The index
+--      hands back hnsw.ef_search = 40 nearest candidates; almost none
+--      survives the abv > 12 filter, and the scan stops there.
 --   3. Raising ef_search helps but only shifts the cliff; 06 shows the
 --      real fix (iterative scan).
 --
 -- NOTE: we SET enable_seqscan = off to force the ANN plan.  On demo-sized
--- tables (~3,200 rows) the planner would otherwise just seq-scan; on
+-- tables (~12,600 rows) the planner would otherwise just seq-scan; on
 -- real-world tables the ANN index IS the chosen plan and this pitfall
 -- bites without any coaxing.
 
@@ -58,7 +59,8 @@ FROM beers
 WHERE abv > 12
 ORDER BY embedding <=> (SELECT embedding FROM beers WHERE id = 1)
 LIMIT 10;
--- ^ 0 rows: all 40 candidates had abv <= 12 and were filtered out.
+-- ^ fewer than 10 rows: most of the 40 candidates had abv <= 12 and were
+--   filtered out (only ~1.5% of all rows pass the filter).
 
 \echo ''
 \echo '=== 3) Workaround: crank up ef_search (costly, still no guarantee) ==='
@@ -71,8 +73,8 @@ FROM (
     ORDER BY embedding <=> (SELECT embedding FROM beers WHERE id = 1)
     LIMIT 10
 ) q;
--- ~4 of 10: better, but ef_search is capped at 1000 and every query pays
--- for the larger candidate set.  On to 06 for the proper fix.
+-- Better, but ef_search is capped at 1000 and every query pays for the
+-- larger candidate set.  On to 06 for the proper fix.
 
 RESET hnsw.ef_search;
 RESET enable_seqscan;

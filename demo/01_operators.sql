@@ -9,7 +9,7 @@
 --   * Identical vectors  → cosine 0  (same direction)
 --   * Orthogonal vectors → cosine 1  (maximally dissimilar)
 --   * Opposite vectors   → cosine 2  (anti-parallel)
---   * Real beer query returns IPA neighbours for Centennial IPA
+--   * Real beer query returns pale-lager neighbours for Zywiec Lager
 -- READ-ONLY — no DDL, no DML
 -- ============================================================
 
@@ -48,7 +48,7 @@ FROM (
 ) t(label, dist);
 
 \echo ''
-\echo '── [3] Real query: 5 nearest beers to "Centennial IPA" (cosine) ──'
+\echo '── [3] Real query: 5 nearest beers to "Zywiec Lager" (cosine) ──'
 
 SELECT
     b.beer_name,
@@ -56,7 +56,7 @@ SELECT
     b.abv,
     round((b.embedding <=> q.embedding)::numeric, 4) AS cosine_dist
 FROM beers b
-CROSS JOIN (SELECT embedding FROM beers WHERE beer_name = 'Centennial IPA') q
-WHERE b.beer_name <> 'Centennial IPA'
+CROSS JOIN (SELECT embedding FROM beers WHERE beer_name = 'Zywiec Lager') q
+WHERE b.beer_name <> 'Zywiec Lager'
 ORDER BY b.embedding <=> q.embedding
 LIMIT 5;

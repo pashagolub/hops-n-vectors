@@ -25,7 +25,7 @@
 
 SET enable_seqscan = off;   -- same forced-ANN setup as 05
 
-\echo '=== Before: iterative scan off — 0 of 10 rows (the 05 pitfall) ==='
+\echo '=== Before: iterative scan off — fewer than 10 rows (the 05 pitfall) ==='
 SET hnsw.iterative_scan = off;
 SELECT count(*) AS rows_returned
 FROM (
