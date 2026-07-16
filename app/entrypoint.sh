@@ -18,6 +18,13 @@ case "${1:-}" in
         shift
         exec python -m "hopsnvectors.$tool" "$@"
         ;;
+    "")
+        # No argument: fall through to the default bootstrap flow below.
+        ;;
+    *)
+        # Any other command (e.g. "python -c …") is executed directly.
+        exec "$@"
+        ;;
 esac
 
 echo "scheduler | stage 1/3: loading dataset ..."
