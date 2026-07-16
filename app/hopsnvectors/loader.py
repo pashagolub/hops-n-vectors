@@ -37,6 +37,19 @@ def _norm(value: str | None) -> str:
     return (value or "").lstrip("\ufeff").strip()
 
 
+def _clean_name(name: str, brewery: str) -> str:
+    """Strip a brewery string erroneously appended to the beer name.
+
+    Some source rows have the brewery concatenated onto the end of the Name
+    column with no separator, e.g. Name="Zywiec BeerZywiec Breweries PLC
+    (Heineken)" while Brewery="Zywiec Breweries PLC (Heineken)".  When the name
+    ends with the (non-empty) brewery and is longer than it, drop the suffix.
+    """
+    if brewery and name != brewery and name.endswith(brewery):
+        return name[: -len(brewery)].strip()
+    return name
+
+
 def _to_float(value: str) -> float | None:
     v = _norm(value)
     try:
@@ -86,6 +99,7 @@ def _read_and_deduplicate(path: Path) -> tuple[list[dict], int]:
         duplicates = 0
         for raw in reader:
             row = {_norm(k): _norm(v) for k, v in raw.items() if k is not None}
+            row["Name"] = _clean_name(row["Name"], row["Brewery"])
             key = (row["Name"], row["Brewery"], row["Style"])
             if key in seen:
                 duplicates += 1
