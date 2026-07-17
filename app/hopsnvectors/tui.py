@@ -17,6 +17,7 @@ import json
 import os
 import shutil
 import textwrap
+import urllib.parse
 from dataclasses import dataclass
 
 _MAX_PROMPT_LEN = 4_000
@@ -194,6 +195,9 @@ def _print_results(rows: list[dict]) -> None:
         brewery = (r.get("brewery") or "").strip()
         if brewery:
             print(f"{indent}by {_truncate(brewery, max(20, width - len(indent) - 3))}")
+        # Untappd search link
+        untappd_url = "https://untappd.com/search?q=" + urllib.parse.quote_plus(name)
+        print(f"{indent}🔍 {untappd_url}")
         # Info: full text word-wrapped to terminal width
         info_text = (r.get("info") or "").replace("\n", " ").strip()
         if info_text:
