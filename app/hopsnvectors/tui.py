@@ -160,7 +160,8 @@ class Searcher:
     def explain(self, sql: str, params: tuple) -> str:
         with self.conn.cursor() as cur:
             cur.execute("EXPLAIN ANALYZE " + sql, params)
-            return "\n".join(row[0] for row in cur.fetchall())
+            plan = "\n".join(row[0] for row in cur.fetchall())
+        return f"-- Query:\n{sql.strip()}\n\n-- Plan:\n{plan}"
 
     def explain_prompt(self, prompt: str, top: int) -> str:
         vec = self._embed(prompt)
