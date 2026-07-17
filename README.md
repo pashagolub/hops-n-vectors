@@ -4,8 +4,8 @@ A self-contained showcase of semantic similarity search in PostgreSQL using the
 [pgvector](https://github.com/pgvector/pgvector) extension, built around a real
 beer dataset. One command starts everything; no cloud APIs, no GPU, no Kaggle
 account. Inspired by the FOSDEM 2025 talk
-*"From Queries to Pints: Building a Beer Recommendation System with pgvector"*
-(Andrzej Nowicki). Slides: [`2025_PGVE_x86FgXC.pdf`](2025_PGVE_x86FgXC.pdf).
+["From Queries to Pints: Building a Beer Recommendation System with pgvector"
+by Andrzej Nowicki](https://archive.fosdem.org/2025/schedule/event/fosdem-2025-5531-from-queries-to-pints-building-a-beer-recommendation-system-with-pgvector/).
 
 ---
 
@@ -188,8 +188,8 @@ re-processed.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ docker compose stack                                         │
-│                                                              │
+│ docker compose stack                                        │
+│                                                             │
 │  ┌──────────────────────┐     ┌──────────────────────────┐  │
 │  │  postgres            │     │  scheduler               │  │
 │  │  pgvector/pgvector   │◄────│  python:3.12-slim        │  │
@@ -200,16 +200,16 @@ re-processed.
 │  │  • HNSW index        │     │    2. embedder           │  │
 │  │  • timetable schema  │     │    3. exec pg_timetable  │  │
 │  └──────────────────────┘     │                          │  │
-│                                │  TUI (on demand):        │  │
-│  volumes:                      │    docker compose run    │  │
-│  • pgdata                      │    --rm scheduler tui    │  │
-│  • model-cache ─────────────►  │                          │  │
-│    (HF model, cached)          │  PROGRAM task:           │  │
-│                                │    rebuild_embeddings    │  │
-│  data/ (bind-mount, ro):       │    (*/15 * * * *)        │  │
-│  • beer_profile_and_ratings.csv│    invokes embedder      │  │
-│                                │    directly in container │  │
-│                                └──────────────────────────┘  │
+│                               │  TUI (on demand):        │  │
+│  volumes:                     │    docker compose run    │  │
+│  • pgdata                     │    --rm scheduler tui    │  │
+│  • model-cache ─────────────► │                          │  │
+│    (HF model, cached)         │  PROGRAM task:           │  │
+│                               │    rebuild_embeddings    │  │
+│  data/ (bind-mount, ro):      │    (*/15 * * * *)        │  │
+│  • beer_data.csv              │    invokes embedder      │  │
+│                               │    directly in container │  │
+│                               └──────────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
 ```
 
