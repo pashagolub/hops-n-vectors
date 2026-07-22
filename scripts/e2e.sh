@@ -120,15 +120,17 @@ else
     exit 1
 fi
 
-TOTAL=$(docker compose exec -T postgres \
+TOTAL_ROWS=$(docker compose exec -T postgres \
     psql -U beer -d beer -t -c "SELECT count(*) FROM beers;" 2>/dev/null | tr -d '[:space:]')
 
 # PER-002: embedding duration
-if [[ -n "$EMBEDDING_START_TS" && -n "$EMBEDDING_END_TS" && "$TOTAL" =~ ^[0-9]+$ && "$TOTAL" -gt 0 ]]; then
+if [[ -n "$EMBEDDING_START_TS" && -n "$EMBEDDING_END_TS" && "$TOTAL_ROWS" =~ ^[0-9]+$ && "$TOTAL_ROWS" -gt 0 ]]; then
     EMBED_ELAPSED=$((EMBEDDING_END_TS - EMBEDDING_START_TS))
     echo "  Embedding duration: ${EMBED_ELAPSED}s"
-    echo "  Embedding throughput: ${TOTAL} row(s) in ${EMBED_ELAPSED}s (baseline: ${PERF_BASELINE_ROWS} row(s) in ${PERF_BASELINE_SECS}s)"
-    if (( TOTAL * PERF_BASELINE_SECS >= PERF_BASELINE_ROWS * EMBED_ELAPSED )); then
+    echo "  Embedding throughput: ${TOTAL_ROWS} row(s) in ${EMBED_ELAPSED}s (baseline: ${PERF_BASELINE_ROWS} row(s) in ${PERF_BASELINE_SECS}s)"
+    # Compare actual throughput against the historical baseline using integer
+    # math: (actual_rows / actual_seconds) >= (baseline_rows / baseline_seconds).
+    if (( TOTAL_ROWS * PERF_BASELINE_SECS >= PERF_BASELINE_ROWS * EMBED_ELAPSED )); then
         ok "PER-002 embedding throughput met the baseline"
     else
         fail "PER-002 embedding throughput fell below the baseline"
@@ -147,13 +149,13 @@ EMBEDDED=$(docker compose exec -T postgres \
     psql -U beer -d beer -t -c "SELECT count(*) FROM beers WHERE embedding IS NOT NULL;" \
     2>/dev/null | tr -d '[:space:]')
 
-echo "  Total rows:    $TOTAL"
+echo "  Total rows:    $TOTAL_ROWS"
 echo "  Embedded rows: $EMBEDDED"
 
-if [[ "$TOTAL" -gt 0 && "$TOTAL" == "$EMBEDDED" ]]; then
-    ok "AC-003 all ${TOTAL} rows embedded"
+if [[ "$TOTAL_ROWS" -gt 0 && "$TOTAL_ROWS" == "$EMBEDDED" ]]; then
+    ok "AC-003 all ${TOTAL_ROWS} rows embedded"
 else
-    fail "AC-003 embedded=${EMBEDDED} of total=${TOTAL}"
+    fail "AC-003 embedded=${EMBEDDED} of total=${TOTAL_ROWS}"
 fi
 
 # ---------------------------------------------------------------------------
