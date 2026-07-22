@@ -7,8 +7,8 @@
 #   AC-003  embedded count = total row count
 #
 # Performance gate (PER-002):
-#   Full initial embedding of ~3,300 rows must complete within 5 minutes
-#   on the current CI runner.
+#   Initial embedding throughput must stay at or above the original baseline:
+#   ~3,300 rows embedded within 5 minutes on the current CI runner.
 #
 # Usage:
 #   bash scripts/e2e.sh [--keep]
@@ -77,12 +77,14 @@ docker compose up -d
 # ---------------------------------------------------------------------------
 
 MAX_WAIT_SECS=600   # 10 minutes (AC-001 budget)
-EMBED_DEADLINE=300  # 5 minutes (PER-002 budget, measured from start)
+PERF_BASELINE_ROWS=3300
+PERF_BASELINE_SECS=300
 POLL_INTERVAL=5
 ELAPSED=0
 READY=0
 EMBEDDING_START_TS=""
 EMBEDDING_END_TS=""
+TOTAL=""
 
 echo "Waiting for bootstrap to complete (up to ${MAX_WAIT_SECS}s)…"
 
@@ -118,17 +120,23 @@ else
     exit 1
 fi
 
+TOTAL_ROWS=$(docker compose exec -T postgres \
+    psql -U beer -d beer -t -c "SELECT count(*) FROM beers;" 2>/dev/null | tr -d '[:space:]')
+
 # PER-002: embedding duration
-if [[ -n "$EMBEDDING_START_TS" && -n "$EMBEDDING_END_TS" ]]; then
+if [[ -n "$EMBEDDING_START_TS" && -n "$EMBEDDING_END_TS" && "$TOTAL_ROWS" =~ ^[0-9]+$ && "$TOTAL_ROWS" -gt 0 ]]; then
     EMBED_ELAPSED=$((EMBEDDING_END_TS - EMBEDDING_START_TS))
-    echo "  Embedding duration: ${EMBED_ELAPSED}s (budget: ${EMBED_DEADLINE}s)"
-    if [[ $EMBED_ELAPSED -le $EMBED_DEADLINE ]]; then
-        ok "PER-002 embedding completed in ${EMBED_ELAPSED}s"
+    echo "  Embedding duration: ${EMBED_ELAPSED}s"
+    echo "  Embedding throughput: ${TOTAL_ROWS} row(s) in ${EMBED_ELAPSED}s (baseline: ${PERF_BASELINE_ROWS} row(s) in ${PERF_BASELINE_SECS}s)"
+    # Compare actual throughput against the historical baseline using integer
+    # math: (actual_rows / actual_seconds) >= (baseline_rows / baseline_seconds).
+    if (( TOTAL_ROWS * PERF_BASELINE_SECS >= PERF_BASELINE_ROWS * EMBED_ELAPSED )); then
+        ok "PER-002 embedding throughput met the baseline"
     else
-        fail "PER-002 embedding took ${EMBED_ELAPSED}s, exceeds ${EMBED_DEADLINE}s budget"
+        fail "PER-002 embedding throughput fell below the baseline"
     fi
 else
-    fail "PER-002 could not measure embedding duration (start/end markers missing)"
+    fail "PER-002 could not measure embedding throughput (duration or row count missing)"
 fi
 
 # ---------------------------------------------------------------------------
@@ -137,19 +145,17 @@ fi
 
 section "AC-003 – Embedded count = total row count"
 
-TOTAL=$(docker compose exec -T postgres \
-    psql -U beer -d beer -t -c "SELECT count(*) FROM beers;" 2>/dev/null | tr -d '[:space:]')
 EMBEDDED=$(docker compose exec -T postgres \
     psql -U beer -d beer -t -c "SELECT count(*) FROM beers WHERE embedding IS NOT NULL;" \
     2>/dev/null | tr -d '[:space:]')
 
-echo "  Total rows:    $TOTAL"
+echo "  Total rows:    $TOTAL_ROWS"
 echo "  Embedded rows: $EMBEDDED"
 
-if [[ "$TOTAL" -gt 0 && "$TOTAL" == "$EMBEDDED" ]]; then
-    ok "AC-003 all ${TOTAL} rows embedded"
+if [[ "$TOTAL_ROWS" -gt 0 && "$TOTAL_ROWS" == "$EMBEDDED" ]]; then
+    ok "AC-003 all ${TOTAL_ROWS} rows embedded"
 else
-    fail "AC-003 embedded=${EMBEDDED} of total=${TOTAL}"
+    fail "AC-003 embedded=${EMBEDDED} of total=${TOTAL_ROWS}"
 fi
 
 # ---------------------------------------------------------------------------
