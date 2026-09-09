@@ -1,0 +1,84 @@
+name: Publish workshop image
+
+# The attendee image. Nothing is pushed until it has been built, started and
+# put through every exercise.
+on:
+  push:
+    tags: ['workshop-*']
+  pull_request:
+    paths: ['workshop/**', 'init/01_schema.sql', 'scripts/workshop-verify.sh']
+  workflow_dispatch:
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/hops-n-vectors
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build (amd64, loaded locally)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: workshop/Dockerfile
+          load: true
+          tags: hops-n-vectors-workshop:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Start it the way an attendee would
+        run: docker run -d --name beer -p 5432:5432 hops-n-vectors-workshop:test
+
+      - name: Verify the contract and every exercise
+        run: bash scripts/workshop-verify.sh beer
+
+      - name: Report size
+        run: docker image ls hops-n-vectors-workshop:test --format 'uncompressed: {{.Size}}'
+
+  publish:
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/workshop-') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=raw,value=pg18
+            type=raw,value=latest
+            type=ref,event=tag
+
+      # No RUN step depends on the target architecture beyond apt and pip
+      # wheels, so emulated arm64 builds are cheap.
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: workshop/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          provenance: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+
+      - name: Confirm both architectures are published
+        run: docker buildx imagetools inspect ${{ env.IMAGE }}:pg18
