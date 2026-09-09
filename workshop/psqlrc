@@ -1,0 +1,13 @@
+\set QUIET 1
+\pset pager off
+\timing on
+\set ON_ERROR_ROLLBACK interactive
+\set COMP_KEYWORD_CASE upper
+\set QUIET 0
+\echo ''
+\echo '  Hops''n''Vectors  --  semantic beer search, all inside PostgreSQL'
+\echo ''
+\echo '  Start here:   \i /workshop/00_check.sql'
+\echo '  Then try:     SELECT * FROM search('\''lemon'\'');'
+\echo '  Exercises:    \! ls /workshop'
+\echo ''

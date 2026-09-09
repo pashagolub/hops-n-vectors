@@ -1,0 +1,9 @@
+# The workshop image needs only the shared schema and the workshop tree.
+*
+!init/01_schema.sql
+!workshop/sql
+!workshop/db
+!workshop/exercises
+!workshop/psqlrc
+!workshop/verify.sql
+!workshop/README.md
