@@ -26,6 +26,12 @@ index-size query. Never cut chapter 5 - it is the payoff.
 
 - [ ] `docker pull ghcr.io/pashagolub/hops-n-vectors:pg18` on the presenter laptop
 - [ ] Rehearse once with Wi-Fi **off**
+- [ ] **Walk the Cloud Shell path yourself once**, start to finish, and note how
+      long the pull takes. Open <https://shell.cloud.google.com>, then
+      `docker run -d --name beer ghcr.io/pashagolub/hops-n-vectors:pg18` and
+      `docker exec -it beer psql`. You will be recommending it from the stage;
+      do not recommend something you have not run. Check in particular that the
+      first `embed()` is not painfully slow on their smaller VM.
 - [ ] `docker rm -fv beer` then a fresh `docker run`, so your timings match theirs
 - [ ] USB sticks prepared (`make workshop-save`), amd64 and arm64, with the README
 - [ ] Ask the organisers to post the pre-pull command in the app the day before
@@ -72,6 +78,12 @@ description out loud first.
 - Git Bash TTY error: Windows Terminal, or `winpty`.
 - Port clash: `-p 5433:5432`.
 - Room-wide Wi-Fi failure: USB sticks, and keep talking - the deck stands alone.
+- Someone has no Docker, or a locked-down laptop: send them to
+  <https://shell.cloud.google.com>. Say it once at minute zero, so the people
+  who need it start their pull immediately rather than at minute fifteen.
+- GitHub Codespaces also works in principle, but Docker inside a codespace needs
+  a devcontainer feature enabled, so do not offer it from the stage unless you
+  have added a `.devcontainer/` to the repo and tested it.
 
 ## Facts worth having ready
 

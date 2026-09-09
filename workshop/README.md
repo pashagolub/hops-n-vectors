@@ -3,7 +3,9 @@
 Semantic beer search, running entirely inside PostgreSQL. No cloud, no API key,
 no GPU, and after the first pull, no network.
 
-You will need **Docker Desktop running** and about **1.5 GB of free disk**.
+You will need **Docker Desktop running** and about **1.5 GB of free disk**. No
+Docker, or bad Wi-Fi? A free browser-based cloud shell works just as well - see
+[Running it in a browser instead](#running-it-in-a-browser-instead).
 
 ## Before the workshop (do this on good Wi-Fi)
 
@@ -96,8 +98,32 @@ docker rm -fv beer
 docker run -d --name beer -p 5432:5432 ghcr.io/pashagolub/hops-n-vectors:pg18
 ```
 
-**No Docker on your laptop.** Pair up with a neighbour. Everything is a psql
-session, so watching costs you nothing.
+**No Docker on your laptop.** Use a browser instead - see below. Failing that,
+pair up with a neighbour; everything is a psql session, so watching costs you
+nothing.
+
+## Running it in a browser instead
+
+You do not have to install anything. [Google Cloud Shell](https://shell.cloud.google.com)
+is free with a Google account and has Docker preinstalled. Open it and run the
+same two commands:
+
+```bash
+docker run -d --name beer ghcr.io/pashagolub/hops-n-vectors:pg18
+docker exec -it beer psql
+```
+
+There is a second reason to consider this even if you do have Docker: the image
+is pulled over Google's network, not the conference Wi-Fi. On a busy conference
+day that is often the faster path.
+
+What to know before you rely on it:
+
+- It needs a Google account, and some corporate accounts have Cloud Shell disabled.
+- Free tier is 50 hours per week; your `$HOME` is 5 GB and persists, but the
+  container does not - when the session ends you re-run `docker run`.
+- Skip `-p 5432:5432`. There is no local GUI to connect, and `docker exec` is
+  all you need.
 
 ## No network at all?
 
