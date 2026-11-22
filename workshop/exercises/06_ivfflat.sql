@@ -28,6 +28,7 @@
 
 DROP INDEX IF EXISTS beers_embedding_hnsw;
 
+\i /workshop/tui/pause.psql
 \echo ''
 \echo '-- Step 2: create IVFFlat (lists=112, ~ sqrt(12656)) --'
 
@@ -35,6 +36,7 @@ CREATE INDEX beers_embedding_ivfflat
     ON beers USING ivfflat (embedding vector_cosine_ops)
     WITH (lists = 112);
 
+\i /workshop/tui/pause.psql
 \echo ''
 \echo '-- Step 3: EXPLAIN ANALYZE -- IVFFlat, probes=1 (default) --'
 \echo ''
@@ -49,6 +51,7 @@ WHERE id <> 10462
 ORDER BY embedding <=> (SELECT embedding FROM beers WHERE id = 10462)
 LIMIT 5;
 
+\i /workshop/tui/pause.psql
 \echo ''
 \echo '-- Step 4: raise probes -> more clusters -> better recall --'
 
@@ -66,6 +69,7 @@ LIMIT 5;
 
 RESET ivfflat.probes;
 
+\i /workshop/tui/pause.psql
 \echo ''
 \echo '-- Step 5: restore HNSW for subsequent scripts --'
 

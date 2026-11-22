@@ -15,7 +15,7 @@ by Andrzej Nowicki](https://archive.fosdem.org/2025/schedule/event/fosdem-2025-5
 > for the run sheet.
 >
 > ```bash
-> docker run -d --name beer -p 5432:5432 ghcr.io/pashagolub/hops-n-vectors:pg18
+> docker run -d --name beer ghcr.io/pashagolub/hops-n-vectors:pg18
 > docker exec -it beer psql
 > ```
 

@@ -5,7 +5,7 @@
 -- this database.  embed() turns any text into 384 numbers; the <=> operator
 -- measures how close two of those number-lists are.
 --
--- Run it, then STOP READING and type your own questions.
+-- The script stops after every step and waits for Enter.
 -- ============================================================
 
 \pset pager off
@@ -14,56 +14,75 @@
 \timing on
 
 \echo ''
-\echo '== [1] What a sentence looks like to a machine =============='
+\echo '== [1] What a word looks like to a machine =================='
+-- 384 numbers.  The model that produced them runs in this backend process.
 
-SELECT left(embed('a crisp golden lager')::text, 90) || ' ...' AS the_first_few_dimensions;
-SELECT vector_dims(embed('a crisp golden lager')) AS dimensions;
+SELECT embed('lemon');
 
+\i /workshop/tui/pause.psql
 \echo ''
 \echo '== [2] Meaning has geometry ================================='
--- Close in meaning => small distance.  Nothing here touches the beer table.
+-- Close in meaning gives a small distance.  Nothing here touches the beer table.
 
-SELECT pair, round(distance::numeric, 4) AS cosine_distance
-FROM (
-    VALUES
-        ('lemon        vs citrus zest',   (embed('lemon') <=> embed('citrus zest'))::float),
-        ('lemon        vs grapefruit',    (embed('lemon') <=> embed('grapefruit'))::float),
-        ('lemon        vs diesel engine', (embed('lemon') <=> embed('diesel engine'))::float)
-) t(pair, distance);
+SELECT embed('lemon') <=> embed('citrus zest')   AS lemon_vs_citrus_zest,
+       embed('lemon') <=> embed('diesel engine') AS lemon_vs_diesel_engine;
+
+\i /workshop/tui/pause.psql
+\echo ''
+\echo '== [3] Semantic search is an ORDER BY ======================='
+-- Every beer already carries a vector.  Sort by distance to the question.
+-- The word "lemon" does not have to appear in the text.
+
+SELECT beer_name
+FROM beers
+ORDER BY embedding <=> embed('lemon')
+LIMIT 5;
+
+\i /workshop/tui/pause.psql
+\echo ''
+\echo '== [4] More like this ======================================='
+-- No model call at all: beer 10462, Zywiec Lager, already carries its vector.
+
+SELECT * FROM similar_to(10462);
+
+\i /workshop/tui/pause.psql
+\echo ''
+\echo '== [5] There is no magic, only SQL =========================='
+-- search() is the query from step [3] with a name.
+
+\sf search
 
 \echo ''
-\echo '== [3] Search, in one function call ========================='
--- The word "lemon" never has to appear in the text.
-
-SELECT * FROM search('lemon');
+\echo '  YOUR TURN.  Type  :beer  and ask in your own words.'
+\i /workshop/tui/more.psql
+\if :more
 
 \echo ''
-\echo '== [4] Ask the way you would ask a friend ==================='
+\echo '== [6] Ask the way you would ask a friend ==================='
 
 SELECT * FROM search('dark roasty coffee chocolate');
 SELECT * FROM search('crisp refreshing beer for a hot summer day');
 SELECT * FROM search('strong dark baltic porter smooth velvety');
 
+\i /workshop/tui/pause.psql
 \echo ''
-\echo '== [5] More like this ======================================='
--- No model call at all: beer 10462 already carries its vector.
+\echo '== [7] Baltic Porter, a style with local roots =============='
 
-SELECT beer_name, brewery, style FROM beers WHERE id = 10462;
-SELECT * FROM similar_to(10462);
+SELECT * FROM similar_to(11149);
 
+\i /workshop/tui/pause.psql
 \echo ''
-\echo '== [6] There is no magic, only SQL =========================='
-
-\sf search
+\echo '== [8] The plan behind search() ============================='
 
 EXPLAIN (ANALYZE, COSTS OFF, TIMING OFF, SUMMARY OFF)
 SELECT * FROM search('lemon');
 
 \echo ''
-\echo '  YOUR TURN.  Try, and invent your own:'
+\echo '  More to try:'
 \echo '    SELECT * FROM search(''something smoky to drink by a bonfire'');'
 \echo '    SELECT * FROM search(''beer for someone who says they hate beer'', 10);'
-\echo '    SELECT * FROM similar_to(11149);   -- Komes Baltic Porter'
+\endif
+
 \echo ''
 \echo '  Next:  \\i /workshop/03_indexes.sql'
 \echo ''

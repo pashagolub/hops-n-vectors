@@ -28,6 +28,7 @@ LIMIT 5;
 \echo ''
 \echo '  Look for: Seq Scan on beers, rows=12656, and a Top-N heapsort.'
 
+\i /workshop/tui/pause.psql
 \echo ''
 \echo '== [2] Build the graph ======================================'
 -- m = links per node; ef_construction = size of the candidate list kept while
@@ -38,6 +39,7 @@ CREATE INDEX beers_embedding_hnsw
     ON beers USING hnsw (embedding vector_cosine_ops)
     WITH (m = 16, ef_construction = 64);
 
+\i /workshop/tui/pause.psql
 \echo ''
 \echo '== [3] The same query, now with the graph ==================='
 
@@ -50,11 +52,15 @@ LIMIT 5;
 \echo ''
 \echo '  Look for: Index Scan using beers_embedding_hnsw, and far fewer buffers.'
 
+\i /workshop/tui/more.psql
+\if :more
+
 \echo ''
 \echo '== [4] How big is the graph? ================================'
 
 SELECT pg_size_pretty(pg_relation_size('beers'))                  AS table_size,
        pg_size_pretty(pg_relation_size('beers_embedding_hnsw'))   AS index_size;
+\endif
 
 \echo ''
 \echo '  Next:  \\i /workshop/04_sharp_edges.sql'

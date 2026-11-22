@@ -41,7 +41,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
 
       - name: Start it the way an attendee would
-        run: docker run -d --name beer -p 5432:5432 hops-n-vectors-workshop:test
+        run: docker run -d --name beer hops-n-vectors-workshop:test
 
       - name: Verify the contract and every exercise
         run: bash scripts/workshop-verify.sh beer

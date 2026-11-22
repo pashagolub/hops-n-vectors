@@ -36,11 +36,25 @@ done
 if grep -q 'ERROR' <<<"$tui"; then echo "FAIL: :beer prompt raised an error"; echo "$tui"; exit 1; fi
 echo ":beer prompt ok"
 
+# Step mode: answer the three prompts of exercise 05, then press Enter at
+# every pause, and check the attendee's own beer comes back from a search.
+stepped=$(printf '%s\n' 'Stepped Stout' 'a pitch black stout with burnt toast and espresso' \
+            'black beer that tastes of burnt toast' '' '' '' '' '' '' \
+          | docker exec -i "$CONTAINER" psql -X -f /workshop/05_keep_it_fresh.sql 2>&1)
+[ "$(grep -c 'Stepped Stout' <<<"$stepped")" -ge 3 ] && ! grep -q 'ERROR' <<<"$stepped" \
+    || { echo "FAIL: step mode in 05_keep_it_fresh.sql"; echo "$stepped"; exit 1; }
+# Enter at the end-of-live-part prompt stops a script; m continues it.
+short=$(printf '\n\n\n\n\n' | docker exec -i "$CONTAINER" psql -X -f /workshop/02_search.sql 2>&1)
+long=$(printf '\n\n\n\nm\n\n\n' | docker exec -i "$CONTAINER" psql -X -f /workshop/02_search.sql 2>&1)
+grep -q 'dark roasty coffee' <<<"$short" && { echo "FAIL: Enter did not stop 02_search.sql"; exit 1; }
+grep -q 'dark roasty coffee' <<<"$long" || { echo "FAIL: m did not continue 02_search.sql"; echo "$long"; exit 1; }
+echo "step mode ok"
+
 for pass in 1 2; do
     echo "=== exercise pass ${pass} ==="
     for f in 00_check 01_operators 02_search 03_indexes 04_sharp_edges 05_keep_it_fresh 06_ivfflat 07_similarity_limits; do
         printf '  %-22s' "$f"
-        if out=$(docker exec "$CONTAINER" psql -X -v ON_ERROR_STOP=1 -q -f "/workshop/${f}.sql" 2>&1); then
+        if out=$(docker exec "$CONTAINER" psql -X -v ON_ERROR_STOP=1 -v nopause=1 -q -f "/workshop/${f}.sql" 2>&1); then
             echo "ok"
         else
             echo "FAILED"; echo "$out" | tail -20; exit 1

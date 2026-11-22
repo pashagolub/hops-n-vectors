@@ -9,18 +9,29 @@ with something on their own screen.
 
 ## Run sheet
 
+You type each query by hand on the projector. Attendees start the chapter's
+script once and press Enter at every step, so the room sees the same query at
+the same time. Each step in a script is one slide.
+
 | Min | Chapter | You say | They run |
 |---|---|---|---|
-| 0-3 | Boarding | "One command. If it fails, put your hand up and a neighbour's screen is fine." | `docker run`, `\i /workshop/00_check.sql` |
-| 3-8 | Why not LIKE | "`LIKE '%lemon%'` finds the word. We want the taste." | `01_operators.sql` |
-| 8-20 | Teach it to read | The centrepiece. `embed()` is Python inside the backend. Then hand the room the keyboard. | `02_search.sql`, then their own queries |
-| 20-30 | Make it fast | Seq Scan on 12,656 rows, then the graph. Read the two timings aloud. | `03_indexes.sql` |
-| 30-40 | Sharp edges | The 0-rows moment. Let it land before you fix it. | `04_sharp_edges.sql` |
-| 40-47 | Keep it alive | They brew a beer, the database learns it. | `05_keep_it_fresh.sql` |
-| 47-50 | Close | Links, homework, where to find you. | - |
+| 0-3 | Intro, then setup | "Two commands. If it fails, a neighbour's screen is fine." | `docker run`, `docker exec -it beer psql`, `\i /workshop/00_check.sql` |
+| 3-7 | Why not LIKE | "`LIKE '%lemon%'` finds the word. We want the taste." | one typed query on toy vectors |
+| 7-24 | Teach it to read | The centrepiece. The diagram, the process id proof (you only), four queries, `\sf search`, then hand the room the keyboard. | `02_search.sql` in 5 steps, then `:beer` |
+| 24-29 | Make it fast | Seq Scan on 12,656 rows, then the graph. Read the two Execution Time lines aloud. | `03_indexes.sql` in 3 steps |
+| 29-39 | Sharp edges | The 0-rows moment. Let it land before you fix it. | `04_sharp_edges.sql` in 5 steps |
+| 39-47 | Keep it alive | They brew a beer, the database learns it. | `05_keep_it_fresh.sql`: three prompts, then 5 steps |
+| 47-50 | Close | Links, homework, `:beer` once more. | - |
 
-If you are running late, cut chapter 3 to the two EXPLAIN outputs and skip the
-index-size query. Never cut chapter 5 - it is the payoff.
+You do not wait for slow pulls. The setup slide goes up at minute zero and
+chapter 1 starts at minute 3. Chapter 1 needs one query, so people whose image
+is still pulling miss almost nothing.
+
+If you are running late, stop chapter 4 after step 3 (the `relaxed_order` fix)
+and call the kielbasa steps homework. Never cut chapter 5 - it is the payoff.
+
+There are no helpers in the room. The fallbacks are `\set nopause 1` and the
+script, a neighbour's screen, or watching.
 
 ## Pre-flight
 
@@ -39,16 +50,20 @@ index-size query. Never cut chapter 5 - it is the payoff.
 
 ## The moments that work
 
-**Chapter 2, after `search('dark roasty coffee chocolate')`.** Every result is a
-stout. Then: "Now look at the descriptions. Nobody wrote 'roasty' in some of
-them." That is the whole pitch in one screen.
+**Chapter 2, step 3.** `ORDER BY embedding <=> embed('lemon') LIMIT 5` is the
+whole idea in one line. Say so, and point out that the first hit, Not Enormous,
+does not have "lemon" in its name.
 
 **Chapter 2, `similar_to(10462)`.** Zywiec Lager returns Zamkowe, Kopernik,
 Tyskie. "The model has reinvented the Polish supermarket shelf." Ask who drank
 one of those this week.
 
-**Chapter 2, `\sf search`.** Six lines of SQL. "This is the entire application.
-There is no service. There is no Python process. There is a database."
+**Chapter 2, `\sf search`.** The query from step 3 with a name. "This is the
+entire application. There is no service. There is no Python process. There is
+a database."
+
+**Chapter 2, `:beer`.** A search prompt written in psql. "Even the user
+interface is PostgreSQL." Show it with `\! cat /workshop/tui/loop.psql`.
 
 **Chapter 4A.** The query returns zero rows with no error. Pause. "This is the
 bug you ship, and your tests pass." Then one `SET` fixes it.
@@ -56,19 +71,24 @@ bug you ship, and your tests pass." Then one `SET` fixes it.
 **Chapter 4B.** The kielbasa question returns kombucha. Own it - it is honest,
 and the fix is a `WHERE` clause. Embeddings rank; SQL knows facts.
 
-**Chapter 5.** They insert their own beer, it is invisible, then a scheduled job
-inside the database gives it a vector. Ask someone to read their beer's
-description out loud first.
+**Chapter 5.** The script asks for a name, a description and a search phrase.
+Their beer is invisible, then `refresh_embeddings()` gives it a vector and
+their own phrase finds it. Ask someone to read their description out loud.
 
-## Timings on reference hardware
+## Timings on the presenter laptop
+
+Measured 2026-11-22. Distances and timings vary a little between CPUs, because
+the model is quantized to 8-bit integers.
 
 | | |
 |---|---|
 | `docker run` to healthy | 12-15 s |
-| first `embed()` in a session | ~430 ms (model load) |
-| later `embed()` | 5-10 ms |
+| first `embed()` in a session | ~600 ms (model load) |
+| later `embed()` | ~5 ms |
 | `search()` with HNSW | under 20 ms |
-| HNSW build over 12,656 rows | ~1 s |
+| HNSW build over 12,656 rows | ~2 s |
+| seq scan, Execution Time | 26-28 ms, 23,260 buffers |
+| HNSW scan, Execution Time | 2-3 ms, about 790 buffers |
 | whole-corpus re-embed (not done live) | ~3 min |
 
 ## If it goes wrong
@@ -76,7 +96,8 @@ description out loud first.
 - Someone's container never goes healthy: `docker rm -fv beer` and rerun. Do not
   debug one laptop on stage; pair them up and move on.
 - Git Bash TTY error: Windows Terminal, or `winpty`.
-- Port clash: `-p 5433:5432`.
+- Port clash: cannot happen with the attendee command, which publishes no port.
+  Your own container can use `-p 5432:5432` if you want to show a local psql.
 - Room-wide Wi-Fi failure: USB sticks, and keep talking - the deck stands alone.
 - Someone has no Docker, or a locked-down laptop: send them to
   <https://shell.cloud.google.com>. Say it once at minute zero, so the people

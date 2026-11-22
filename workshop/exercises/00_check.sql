@@ -5,7 +5,7 @@
 --
 -- Everything below should say OK.  If anything says MISSING, reset with:
 --   docker rm -fv beer
---   docker run -d --name beer -p 5432:5432 ghcr.io/pashagolub/hops-n-vectors:pg18
+--   docker run -d --name beer ghcr.io/pashagolub/hops-n-vectors:pg18
 
 \pset pager off
 \timing off

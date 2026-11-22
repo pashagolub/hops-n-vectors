@@ -23,6 +23,12 @@
 \echo '========================================================'
 
 \echo ''
+\echo '-- [0] One distance, typed by hand --'
+
+SELECT '[1,2,3]'::vector <=> '[4,5,6]'::vector AS cosine_distance;
+
+\i /workshop/tui/pause.psql
+\echo ''
 \echo '-- [1] Four operators on the same pair of 3-D vectors --'
 
 SELECT
@@ -36,6 +42,7 @@ FROM (
         ('L1      <+>',  ('[1,2,3]'::vector(3) <+>  '[4,5,6]'::vector(3))::float)
 ) t(operator, distance);
 
+\i /workshop/tui/pause.psql
 \echo ''
 \echo '-- [2] Cosine special cases --'
 
@@ -49,6 +56,7 @@ FROM (
         ('opposite    [1,2,3] vs [-1,-2,-3]', ('[1,2,3]'::vector(3) <=> '[-1,-2,-3]'::vector(3))::float)
 ) t(label, dist);
 
+\i /workshop/tui/pause.psql
 \echo ''
 \echo '-- [3] Real query: 5 nearest beers to "Zywiec Lager" (cosine) --'
 

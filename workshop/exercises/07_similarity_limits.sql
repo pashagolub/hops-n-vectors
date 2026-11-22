@@ -76,6 +76,7 @@ FROM (
 ) t
 ORDER BY cosine_dist;
 
+\i /workshop/tui/pause.psql
 \echo ''
 \echo '-- [2] Nearest neighbours of "Bud Light" (light lager, 4.2 % ABV) --'
 \echo '   Watch for dark / heavy styles appearing in the results.'
@@ -92,6 +93,7 @@ WHERE b.id <> 1573
 ORDER BY b.embedding <=> q.embedding
 LIMIT 8;
 
+\i /workshop/tui/pause.psql
 \echo ''
 \echo '-- [3] Nearest neighbours of a non-alcoholic IPA --'
 \echo '   Expect full-strength IPAs to appear; the model ignores polarity.'
