@@ -75,6 +75,6 @@ DELETE FROM beers WHERE id > 12656;
 
 \echo ''
 \echo '  That is the whole workshop. Homework:'
-\echo '    \i /workshop/06_ivfflat.sql            -- a different index, different trade-off'
-\echo '    \i /workshop/07_similarity_limits.sql  -- where similarity stops being logic'
+\echo '    \\i /workshop/06_ivfflat.sql            -- a different index, different trade-off'
+\echo '    \\i /workshop/07_similarity_limits.sql  -- where similarity stops being logic'
 \echo ''

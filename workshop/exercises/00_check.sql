@@ -45,5 +45,5 @@ FROM (
 SELECT * FROM search('lemon', 3);
 
 \echo ''
-\echo 'Ready.  Next:  \i /workshop/01_operators.sql'
+\echo 'Ready.  Next:  \\i /workshop/01_operators.sql'
 \echo ''

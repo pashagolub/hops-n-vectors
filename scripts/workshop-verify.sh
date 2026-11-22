@@ -16,6 +16,15 @@ echo
 
 docker exec "$CONTAINER" psql -X -v ON_ERROR_STOP=1 -q -f /workshop/verify.sql
 
+# Every other check passes -X, which skips psqlrc. This one loads it, because
+# the banner is the first thing an attendee sees.
+banner=$(docker exec "$CONTAINER" psql -c 'SELECT 1' 2>&1)
+if grep -q 'error' <<<"$banner" || ! grep -qF '\i /workshop/00_check.sql' <<<"$banner" \
+    || ! grep -qF "search('lemon')" <<<"$banner"; then
+    echo "FAIL: the psqlrc banner is broken"; echo "$banner"; exit 1
+fi
+echo "psqlrc banner ok"
+
 for pass in 1 2; do
     echo "=== exercise pass ${pass} ==="
     for f in 00_check 01_operators 02_search 03_indexes 04_sharp_edges 05_keep_it_fresh 06_ivfflat 07_similarity_limits; do

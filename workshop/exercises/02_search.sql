@@ -63,5 +63,5 @@ SELECT * FROM search('lemon');
 \echo '    SELECT * FROM search(''beer for someone who says they hate beer'', 10);'
 \echo '    SELECT * FROM similar_to(11149);   -- Komes Baltic Porter'
 \echo ''
-\echo '  Next:  \i /workshop/03_indexes.sql'
+\echo '  Next:  \\i /workshop/03_indexes.sql'
 \echo ''

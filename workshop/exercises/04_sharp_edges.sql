@@ -85,5 +85,5 @@ LIMIT 5;
 \echo '  Lesson: embeddings are a ranking tool, not a knowledge base.'
 \echo '  SQL is very good at the parts they are bad at.'
 \echo ''
-\echo '  Next:  \i /workshop/05_keep_it_fresh.sql'
+\echo '  Next:  \\i /workshop/05_keep_it_fresh.sql'
 \echo ''

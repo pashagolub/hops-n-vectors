@@ -55,5 +55,5 @@ SELECT pg_size_pretty(pg_relation_size('beers'))                  AS table_size,
        pg_size_pretty(pg_relation_size('beers_embedding_hnsw'))   AS index_size;
 
 \echo ''
-\echo '  Next:  \i /workshop/04_sharp_edges.sql'
+\echo '  Next:  \\i /workshop/04_sharp_edges.sql'
 \echo ''
