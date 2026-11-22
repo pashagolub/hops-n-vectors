@@ -15,6 +15,8 @@
 -- ============================================================
 
 \pset pager off
+-- Print each statement before its result, so the query is on screen with its answer.
+\set ECHO queries
 
 \echo ''
 \echo '========================================================'
@@ -75,3 +77,4 @@ CREATE INDEX beers_embedding_hnsw
 \echo ''
 \echo 'Final indexes on beers:'
 SELECT indexname FROM pg_indexes WHERE tablename = 'beers' ORDER BY indexname;
+\set ECHO none

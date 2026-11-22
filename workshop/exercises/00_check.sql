@@ -42,7 +42,10 @@ FROM (
 ) AS t(item, ok);
 
 \echo '=== First search ==========================================='
+-- Print this one statement, so the first search is visible with its answer.
+\set ECHO queries
 SELECT * FROM search('lemon', 3);
+\set ECHO none
 
 \echo ''
 \echo 'Ready.  Next:  \\i /workshop/01_operators.sql'

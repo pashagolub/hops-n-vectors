@@ -9,6 +9,8 @@
 -- ============================================================
 
 \pset pager off
+-- Print each statement before its result, so the query is on screen with its answer.
+\set ECHO queries
 \timing on
 
 \echo ''
@@ -65,3 +67,4 @@ SELECT * FROM search('lemon');
 \echo ''
 \echo '  Next:  \\i /workshop/03_indexes.sql'
 \echo ''
+\set ECHO none

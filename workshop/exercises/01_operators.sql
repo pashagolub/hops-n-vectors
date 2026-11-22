@@ -14,6 +14,8 @@
 -- ============================================================
 
 \pset pager off
+-- Print each statement before its result, so the query is on screen with its answer.
+\set ECHO queries
 
 \echo ''
 \echo '========================================================'
@@ -60,3 +62,4 @@ CROSS JOIN (SELECT embedding FROM beers WHERE beer_name = 'Zywiec Lager') q
 WHERE b.beer_name <> 'Zywiec Lager'
 ORDER BY b.embedding <=> q.embedding
 LIMIT 5;
+\set ECHO none

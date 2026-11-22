@@ -17,6 +17,8 @@
 -- ============================================================
 
 \pset pager off
+-- Print each statement before its result, so the query is on screen with its answer.
+\set ECHO queries
 
 \echo ''
 \echo '========================================================'
@@ -116,3 +118,4 @@ LIMIT 8;
 \echo '  combine WHERE clauses with the ORDER BY <=> -- do not'
 \echo '  rely on vector similarity alone for structured data.'
 \echo '========================================================'
+\set ECHO none

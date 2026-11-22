@@ -10,6 +10,8 @@
 -- ============================================================
 
 \pset pager off
+-- Print each statement before its result, so the query is on screen with its answer.
+\set ECHO queries
 \timing on
 
 \echo ''
@@ -57,3 +59,4 @@ SELECT pg_size_pretty(pg_relation_size('beers'))                  AS table_size,
 \echo ''
 \echo '  Next:  \\i /workshop/04_sharp_edges.sql'
 \echo ''
+\set ECHO none

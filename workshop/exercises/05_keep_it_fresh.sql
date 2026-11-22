@@ -10,6 +10,8 @@
 -- ============================================================
 
 \pset pager off
+-- Print each statement before its result, so the query is on screen with its answer.
+\set ECHO queries
 \timing on
 
 \echo ''
@@ -78,3 +80,4 @@ DELETE FROM beers WHERE id > 12656;
 \echo '    \\i /workshop/06_ivfflat.sql            -- a different index, different trade-off'
 \echo '    \\i /workshop/07_similarity_limits.sql  -- where similarity stops being logic'
 \echo ''
+\set ECHO none

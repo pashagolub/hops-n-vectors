@@ -9,6 +9,8 @@
 -- ============================================================
 
 \pset pager off
+-- Print each statement before its result, so the query is on screen with its answer.
+\set ECHO queries
 \timing on
 
 \echo ''
@@ -87,3 +89,4 @@ LIMIT 5;
 \echo ''
 \echo '  Next:  \\i /workshop/05_keep_it_fresh.sql'
 \echo ''
+\set ECHO none
