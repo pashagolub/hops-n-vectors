@@ -4,6 +4,7 @@
 !workshop/sql
 !workshop/db
 !workshop/exercises
+!workshop/tui
 !workshop/psqlrc
 !workshop/verify.sql
 !workshop/README.md

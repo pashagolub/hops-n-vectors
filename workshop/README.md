@@ -55,6 +55,25 @@ SELECT * FROM similar_to(10462);
 \sf search
 ```
 
+### The `:beer` prompt
+
+Type `:beer` at the psql prompt to get a `beer>` prompt that takes plain text:
+
+```text
+beer=# :beer
+beer> dark roasty coffee and chocolate
+beer> :like 11149
+beer> :top 10
+beer> :explain
+beer> :quit
+```
+
+It is two psql scripts in `/workshop/tui/`, with no other program involved.
+`psqlrc` stores `\i /workshop/tui/start.psql` in a psql variable named `beer`,
+`\prompt` reads your line, SQL classifies it, and the script ends by including
+itself again. `:help` lists the commands. An empty line or `:quit` returns you
+to psql.
+
 ## The exercises
 
 | File | What it teaches | Time |

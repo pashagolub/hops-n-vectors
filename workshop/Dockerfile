@@ -87,6 +87,7 @@ COPY workshop/sql/30_index.sql workshop/sql/40_helpers.sql \
 
 COPY workshop/exercises/ /workshop/
 COPY workshop/psqlrc workshop/verify.sql /workshop/
+COPY workshop/tui/ /workshop/tui/
 
 # pg_cron must be preloaded, and the entrypoint passes these to the
 # temporary init server too, so 50_cron.sql can create the extension.

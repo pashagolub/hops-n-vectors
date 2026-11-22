@@ -1,0 +1,87 @@
+-- One turn of the :beer prompt: read a line, decide what it is, act on it,
+-- then include this same file again.  That last \i is the whole loop.
+--
+-- psql has no string functions, so SQL classifies the line and \gset stores
+-- the answer in psql variables that \if can test.
+
+-- Ctrl-D leaves tui_line unset.  The classifier is skipped in that case and
+-- the default below ends the loop, where it would otherwise repeat forever.
+\unset tui_line
+\set tui_quit true
+\prompt 'beer> ' tui_line
+
+\if :{?tui_line}
+SELECT c = '' OR c IN (':quit', ':q', ':exit')   AS tui_quit,
+       :tui_turn + 1                             AS tui_turn,
+       :tui_turn + 1 >= 400                      AS tui_tired,
+       c = ':help'                               AS tui_help,
+       c IN (':cls', ':clear')                   AS tui_cls,
+       c = ':explain'                            AS tui_toggle,
+       c ~ '^:like\s+\d{1,9}$'                   AS tui_like,
+       c ~ '^:top\s+([1-9]|[1-4]\d|50)$'         AS tui_settop,
+       c ~ '^:(like|top)(\s|$)'                  AS tui_usage,
+       c !~ '^:'                                 AS tui_search,
+       coalesce(substring(c FROM '\d+$'), '0')   AS tui_arg
+FROM (SELECT lower(btrim(:'tui_line')) AS c) AS t
+\gset
+\endif
+
+\if :tui_quit
+    \echo 'Cheers!'
+\else
+    \if :tui_help
+        \echo '  <free text>   beers closest in meaning to what you typed'
+        \echo '  :like <id>    more beers like beer <id>'
+        \echo '  :top <n>      number of results, 1 to 50'
+        \echo '  :explain      show the query plan before each search, on or off'
+        \echo '  :cls          clear the screen'
+        \echo '  :quit         back to psql (an empty line does the same)'
+    \elif :tui_cls
+        \! clear
+    \elif :tui_toggle
+        \if :tui_explain
+            \set tui_explain false
+            \echo 'Plans are off.'
+        \else
+            \set tui_explain true
+            \echo 'Plans are on.'
+        \endif
+    \elif :tui_settop
+        \set tui_top :tui_arg
+        \echo 'Showing' :tui_top 'results.'
+    \elif :tui_like
+        \if :tui_explain
+            EXPLAIN (ANALYZE, COSTS OFF, BUFFERS OFF)
+            SELECT b.id, b.beer_name
+            FROM beers b
+            WHERE b.id <> :tui_arg
+            ORDER BY b.embedding <=> (SELECT beer_vec(:tui_arg))
+            LIMIT :tui_top;
+        \endif
+        \timing on
+        SELECT * FROM similar_to(:tui_arg, :tui_top);
+        \timing off
+    \elif :tui_search
+        \if :tui_explain
+            EXPLAIN (ANALYZE, COSTS OFF, BUFFERS OFF)
+            SELECT b.id, b.beer_name
+            FROM beers b
+            ORDER BY b.embedding <=> (SELECT embed(:'tui_line'))
+            LIMIT :tui_top;
+        \endif
+        \timing on
+        SELECT * FROM search(:'tui_line', :tui_top);
+        \timing off
+    \elif :tui_usage
+        \echo 'Usage:  :like <beer id>   or   :top <1 to 50>'
+    \else
+        \echo 'Unknown command.  :help lists the commands.'
+    \endif
+    -- Every turn nests one \i deeper and holds one more open file, so stop
+    -- well short of the limit on open files.
+    \if :tui_tired
+        \echo 'That was 400 rounds.  Type :beer for more.'
+    \else
+        \i /workshop/tui/loop.psql
+    \endif
+\endif

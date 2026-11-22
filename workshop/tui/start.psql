@@ -1,0 +1,21 @@
+-- :beer | a beer sommelier prompt, written in nothing but psql.
+--
+-- psqlrc defines   \set beer '\\i /workshop/tui/start.psql'
+-- so typing :beer at the psql prompt runs this file.  It sets the screen up,
+-- hands over to loop.psql, and restores the session when the loop ends.
+
+\set QUIET on
+\timing off
+\set tui_top 5
+\set tui_explain false
+\set tui_turn 0
+
+\echo ''
+\echo '  Hops''n''Vectors sommelier.  Describe the beer you fancy.'
+\echo '  :help lists the commands.  An empty line or :quit leaves.'
+\echo ''
+
+\i /workshop/tui/loop.psql
+
+\timing on
+\set QUIET off

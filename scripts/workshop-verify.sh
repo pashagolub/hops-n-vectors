@@ -25,6 +25,17 @@ if grep -q 'error' <<<"$banner" || ! grep -qF '\i /workshop/00_check.sql' <<<"$b
 fi
 echo "psqlrc banner ok"
 
+# Drive the :beer prompt the way an attendee would, through psqlrc and stdin.
+tui=$(printf '%s\n' ':beer' ':top 2' 'dark roasty coffee' ':like 11149' ':explain' 'lemon' \
+        ':top 99' ':nonsense' ':quit' 'SELECT count(*) AS still_psql FROM beers;' \
+      | docker exec -i "$CONTAINER" psql 2>&1)
+for want in 'Showing 2 results.' '(2 rows)' 'Komes Raspberry Baltic Porter' \
+            'Index Scan using beers_embedding_hnsw' 'Usage:' 'Unknown command.' 'Cheers!' 'still_psql'; do
+    grep -qF -- "$want" <<<"$tui" || { echo "FAIL: :beer prompt, missing: $want"; echo "$tui"; exit 1; }
+done
+if grep -q 'ERROR' <<<"$tui"; then echo "FAIL: :beer prompt raised an error"; echo "$tui"; exit 1; fi
+echo ":beer prompt ok"
+
 for pass in 1 2; do
     echo "=== exercise pass ${pass} ==="
     for f in 00_check 01_operators 02_search 03_indexes 04_sharp_edges 05_keep_it_fresh 06_ivfflat 07_similarity_limits; do
