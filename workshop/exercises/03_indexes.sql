@@ -4,8 +4,9 @@
 -- Comparing a question to 12,656 beers means 12,656 distance calculations.
 -- That is fine here.  It is not fine at 12 million.
 --
--- HNSW builds a navigable graph through the vector space, so the search
--- walks towards the answer instead of visiting everything.
+-- HNSW (Hierarchical Navigable Small World) builds a navigable graph through
+-- the vector space, so the search walks towards the answer instead of
+-- visiting everything.
 -- ============================================================
 
 \pset pager off
@@ -27,8 +28,9 @@ LIMIT 5;
 
 \echo ''
 \echo '== [2] Build the graph ======================================'
--- m = links per node, ef_construction = how hard we look while building.
--- Higher = better recall, slower build, bigger index.
+-- m = links per node; ef_construction = size of the candidate list kept while
+-- building ("ef" is the exploration factor).  Higher = better recall, slower
+-- build, bigger index.
 
 CREATE INDEX beers_embedding_hnsw
     ON beers USING hnsw (embedding vector_cosine_ops)

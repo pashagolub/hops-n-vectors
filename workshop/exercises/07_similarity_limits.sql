@@ -1,5 +1,5 @@
 -- ============================================================
--- GUD-003 | 07_similarity_limits.sql
+-- 07 | Where similarity stops being logic (homework)
 -- DEMONSTRATES: Semantic similarity pitfalls -- embeddings capture
 --   topical relatedness, NOT logical polarity
 -- EXPECTED OBSERVATIONS:

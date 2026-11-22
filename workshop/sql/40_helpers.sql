@@ -95,13 +95,15 @@ DECLARE
     n         integer;
 BEGIN
     LOOP
+        -- Joined back to beers only for `info`, which stale_beers leaves out
+        -- so that `SELECT * FROM stale_beers` stays readable.
         SELECT array_agg(s.id ORDER BY s.id), array_agg(s.info ORDER BY s.id)
         INTO ids, infos
         FROM (
-            SELECT b.id, b.info
-            FROM beers b
-            WHERE b.id IN (SELECT st.id FROM stale_beers st)
-            ORDER BY b.id
+            SELECT st.id, b.info
+            FROM stale_beers st
+            JOIN beers b USING (id)
+            ORDER BY st.id
             LIMIT batch_size
         ) s;
 

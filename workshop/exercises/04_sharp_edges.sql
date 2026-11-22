@@ -30,8 +30,10 @@ RESET enable_bitmapscan;
 
 \echo ''
 \echo '== A2. The same query, using the HNSW index ================='
--- The index fetches ef_search candidates FIRST, then applies WHERE.
--- Only 181 of 12,656 beers are above 12% - so the candidates all get filtered away.
+-- The index fetches ef_search candidates FIRST, then applies WHERE.  ef_search
+-- is how many candidates the graph walk keeps; it defaults to 40.
+-- Only 181 of 12,656 beers are above 12% ABV (alcohol by volume), so the
+-- candidates all get filtered away.
 
 SET enable_seqscan = off;
 SET hnsw.iterative_scan = off;

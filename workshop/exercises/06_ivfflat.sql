@@ -1,6 +1,7 @@
 -- ============================================================
--- GUD-003 | 04_ivfflat.sql
--- DEMONSTRATES: IVFFlat index -- inverted-file flat clustering ANN
+-- 06 | IVFFlat: a different index, a different trade-off (homework)
+-- DEMONSTRATES: IVFFlat (inverted file, flat compression) -- a clustering
+--   approach to ANN (approximate nearest neighbour) search
 --   lists = 112  (rule of thumb: ~ sqrt(12656 rows) ~ 112)
 --   probes = N   controls how many clusters are searched at query time
 -- EXPECTED OBSERVATIONS:
@@ -17,7 +18,7 @@
 
 \echo ''
 \echo '========================================================'
-\echo '  04 | IVFFlat index -- cluster-based ANN'
+\echo '  06 | IVFFlat -- cluster-based approximate nearest neighbour'
 \echo '========================================================'
 
 \echo ''

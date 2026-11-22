@@ -1,6 +1,7 @@
 -- Hops'n'Vectors workshop: the embedding model lives inside PostgreSQL.
 --
--- No external service, no GPU, no network.  A quantized ONNX export of
+-- No external service, no GPU, no network.  A quantized ONNX (Open Neural
+-- Network Exchange, a portable model file format) export of
 -- sentence-transformers/all-MiniLM-L12-v2 is baked into the image and executed
 -- by ONNX Runtime inside the PostgreSQL backend through plpython3u.
 --
@@ -8,8 +9,11 @@
 --   SELECT embed_batch(ARRAY['lemon','oak']); -- one session.run() for many texts
 --
 -- The model and tokenizer are loaded lazily, once per backend, and cached in
--- the plpython3u session dictionary (GD), so the first call in a session costs
--- ~0.5-1 s and every later call is milliseconds.
+-- GD, the global dictionary PostgreSQL gives every plpython3u session, so the
+-- first call in a session costs ~0.5-1 s and every later call is milliseconds.
+--
+-- `hnv_` and `HNV_` prefix the internals and tunables of this project
+-- (hops-n-vectors); the functions you are meant to call have plain names.
 
 CREATE EXTENSION IF NOT EXISTS vector;
 CREATE EXTENSION IF NOT EXISTS plpython3u;
@@ -17,7 +21,8 @@ CREATE EXTENSION IF NOT EXISTS plpython3u;
 -- Loads tokenizer + ONNX Runtime session into GD and publishes a single
 -- `encode(list[str]) -> list[str]` callable that the SQL-facing functions use.
 -- GD is shared by every plpython3u function in the same session, so embed()
--- and embed_batch() share one model instance.
+-- and embed_batch() share one model instance.  `ort` below is the conventional
+-- alias for the onnxruntime module.
 CREATE OR REPLACE FUNCTION hnv_init()
 RETURNS void
 LANGUAGE plpython3u
@@ -33,7 +38,7 @@ from tokenizers import Tokenizer
 
 model_dir = os.environ.get("HNV_MODEL_DIR", "/opt/model")
 max_len = int(os.environ.get("HNV_MAX_SEQ_LENGTH", "128"))
-threads = int(os.environ.get("HNV_ORT_THREADS", "2"))
+threads = int(os.environ.get("HNV_ORT_THREADS", "2"))  # ORT = ONNX Runtime
 
 tokenizer = Tokenizer.from_file(os.path.join(model_dir, "tokenizer.json"))
 tokenizer.enable_truncation(max_length=max_len)
