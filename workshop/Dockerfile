@@ -1,4 +1,8 @@
-# syntax=docker/dockerfile:1.7
+#
+# No `# syntax=` pin on purpose: fetching an external frontend image needs
+# registry credentials, which are unavailable over SSH or offline.  The only
+# feature beyond the base syntax is `ADD --checksum`, which BuildKit has
+# supported natively since Docker 24.
 #
 # Hops'n'Vectors workshop image — everything an attendee needs in one pull:
 #   PostgreSQL 18 + pgvector + pg_cron + plpython3u + ONNX Runtime
