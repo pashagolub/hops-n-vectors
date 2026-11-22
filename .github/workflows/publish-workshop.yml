@@ -37,7 +37,7 @@ jobs:
         run: bash scripts/workshop-verify.sh beer
 
       - name: Report size
-        run: docker image ls hops-n-vectors-workshop:test --format 'uncompressed: {{.Size}}'
+        run: docker image ls hops-n-vectors-workshop:test --format '{{.Size}} uncompressed'
 
   publish:
     needs: test
