@@ -7,6 +7,18 @@ account. Inspired by the FOSDEM 2025 talk
 ["From Queries to Pints: Building a Beer Recommendation System with pgvector"
 by Andrzej Nowicki](https://archive.fosdem.org/2025/schedule/event/fosdem-2025-5531-from-queries-to-pints-building-a-beer-recommendation-system-with-pgvector/).
 
+> **Running the workshop?** Attendees do not use this stack. They pull one
+> prebuilt image that carries the embedding model *inside* PostgreSQL, so
+> `embed()` is a SQL function and there is no Python, no torch and no model
+> download on their laptops. See **[workshop/README.md](workshop/README.md)**
+> for the attendee handout and **[workshop/TRAINER.md](workshop/TRAINER.md)**
+> for the run sheet.
+>
+> ```bash
+> docker run -d --name beer ghcr.io/pashagolub/hops-n-vectors:pg18
+> docker exec -it beer psql
+> ```
+
 ---
 
 ## Table of Contents
@@ -41,8 +53,8 @@ docker compose up          # or: make up
 ```
 postgres   | database system is ready to accept connections
 scheduler  | validating bundled dataset ... ok
-scheduler  | loaded 3197 beers (inserted=3197 updated=0)
-scheduler  | embedding 3197/3197 (100%) in ~2 min
+scheduler  | loaded 12656 beers (inserted=12656 updated=0)
+scheduler  | embedding 12656/12656 (100%) in ~8 min
 scheduler  | CREATE INDEX beers_embedding_hnsw ... done
 scheduler  | Run: docker compose run --rm scheduler tui
 scheduler  |      psql: docker compose exec postgres psql -U beer -d beer
@@ -222,9 +234,9 @@ re-processed.
 - **Entrypoint pipeline** — loader → embedder runs to completion before
   `pg_timetable` starts, making each stage observable in `docker compose up`
   output and independently re-runnable.
-- **Bundled dataset** — the Kaggle CSV is committed to the repo (CC BY 4.0
-  permits redistribution with attribution). No runtime download, no Kaggle auth:
-  a classic live-demo failure mode eliminated.
+- **Bundled dataset** — the Kaggle CSV is committed to the repo (CC0 places it
+  in the public domain). No runtime download, no Kaggle auth: a classic
+  live-demo failure mode eliminated.
 - **One embedding per beer** — descriptions are short (<4,000 chars); no
   chunking needed. The schema constant is `vector(384)` matching
   `all-MiniLM-L12-v2`. Changing the model requires a schema migration and full
@@ -280,19 +292,36 @@ for a one-line "what to say" per script.
 | `make reset` | Tear down stack and volumes (full reset) |
 | `make test` | Run test suite |
 | `make lint` | Run linter (ruff) |
+| `make logs` | Follow container logs |
+
+Workshop image (see [workshop/README.md](workshop/README.md)):
+
+| Target | Action |
+|---|---|
+| `make workshop-build` | Build the attendee image |
+| `make workshop-run` | Run it the way an attendee does |
+| `make workshop-verify` | Assert the contract, run every exercise twice |
+| `make workshop-psql` | psql into the running attendee container |
+| `make workshop-save` | Write USB tarballs (amd64, arm64) into `dist/` |
+| `make workshop-clean` | Remove the attendee container and its volume |
 
 ---
 
 ## 7. Dataset
 
-**Beer Profile and Ratings Data Set**
-Author: ruthgn | License: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
-Source: <https://www.kaggle.com/datasets/ruthgn/beer-profile-and-ratings-data-set>
+**Wikiliq — Alcohol dataset (May 2022), beer subset**
+Author: limtis | License: [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/)
+Source: <https://www.kaggle.com/datasets/limtis/wikiliq-dataset>
 
-The CSV is bundled in this repository as `data/beer_profile_and_ratings.csv`
-(snapshot date: 2026-07-06, ~3,197 beers). The dataset is static (last updated
-~2021 on Kaggle); no runtime download or re-sync is performed. Attribution is
-also stored in the `dataset_meta` table at runtime.
+The CSV is bundled in this repository as `data/beer_data.csv` (snapshot date:
+2026-07-16). Of its 13,505 rows the loader skips 817 keg and barrel SKUs and
+32 duplicates, leaving **12,656 beers**. The dataset is static; no runtime
+download or re-sync is performed. Provenance is also stored in the
+`dataset_meta` table at runtime.
+
+`data/beer_profile_and_ratings.csv` (ruthgn, CC BY 4.0, ~3,197 beers) is kept
+for reference but is no longer loaded. See `data/README.md` for the column
+mapping of both.
 
 ---
 

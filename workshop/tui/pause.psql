@@ -1,0 +1,8 @@
+-- Waits for Enter between the steps of an exercise, so the room moves through
+-- a script one query at a time.  To run a script straight through, type
+--   \set nopause 1
+-- before the \i.
+\if :{?nopause}
+\else
+    \prompt '  -- Enter for the next step -- ' pause_ignored
+\endif

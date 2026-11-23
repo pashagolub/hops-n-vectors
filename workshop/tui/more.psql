@@ -1,0 +1,16 @@
+-- Marks the end of the part we run together.  Sets the psql variable "more"
+-- to true when the attendee asks for the extra material.  With nopause set,
+-- the extra material always runs, so automated checks cover the whole file.
+\set QUIET on
+\timing off
+\set ECHO none
+\if :{?nopause}
+    \set more true
+\else
+    \echo ''
+    \prompt '  End of the live part.  Enter to stop here, or m and Enter for more: ' more_answer
+    SELECT lower(btrim(:'more_answer')) LIKE 'm%' AS more \gset
+\endif
+\set ECHO queries
+\timing on
+\set QUIET off

@@ -1,0 +1,21 @@
+\set QUIET 1
+\pset pager off
+-- Wrap wide values to the terminal width, so a 384-number vector stays readable.
+\pset format wrapped
+\timing on
+\set ON_ERROR_ROLLBACK interactive
+\set COMP_KEYWORD_CASE upper
+-- :beer starts the sommelier prompt.  psql expands the variable and runs it.
+\set beer '\\i /workshop/tui/start.psql'
+\set QUIET 0
+\echo ''
+\echo '  Hops''n''Vectors  --  semantic beer search, all inside PostgreSQL'
+\echo ''
+\echo '  Start here:   \\i /workshop/00_check.sql'
+\echo '  Then try:     SELECT * FROM search(''lemon'');'
+\echo '  Exercises:    \\! ls /workshop'
+\echo '  Or just ask:  :beer'
+\echo ''
+\echo '  Exercises stop after each step and wait for Enter.'
+\echo '  To run one straight through:  \\set nopause 1'
+\echo ''

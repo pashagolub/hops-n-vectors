@@ -1,0 +1,6 @@
+*.gz            binary
+*.onnx          binary
+*.sql           text eol=lf
+*.sh            text eol=lf
+Dockerfile      text eol=lf
+workshop/psqlrc text eol=lf
